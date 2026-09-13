@@ -58,7 +58,21 @@ function stemOf(name) {
   return dot > 0 ? n.slice(0, dot) : n;
 }
 
+const ASSET_BASE = "assets/icons";
+
+// Resolve a tool card `icon_file` to a web-servable asset URL. Module
+// manifests may reference shared assets via `utils/myutils/<file>`; those
+// are relayed to the same icons base (the Python scanner keeps them in sync
+// on cache compilation), so we just drop the prefix and join the base.
+function toolIconFile(iconFile) {
+  const raw = String(iconFile || "");
+  const file = raw.replace(/^utils[\\/]+myutils[\\/]+/, "").replace(/[\\/]+/g, "/");
+  if (!file) return "";
+  return file.startsWith(ASSET_BASE) ? file : `${ASSET_BASE}/${file}`;
+}
+
 export {
   sepOf, stripTrailingSep, fileName, dirname, dirnameWithSep,
   withTrailingSep, isFilePathLike, stripToDir, joinPath, stemOf,
+  ASSET_BASE, toolIconFile,
 };

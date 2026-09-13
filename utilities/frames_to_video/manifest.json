@@ -1,0 +1,16 @@
+{
+  "id": "frames_to_video",
+  "title": "Frames to Video",
+  "description": "Turn image sequences into MP4, WebM, GIF, APNG or WEBP videos.",
+  "version": "1.0.0",
+  "icon": "🎞️",
+  "icon_file": "assets/icons/frames_to_video.png",
+  "badge": "Beta",
+  "tags": ["video", "convert", "frames", "sequence", "mp4", "webm", "gif", "apng", "webp", "animation"],
+  "runtime": "runtime.py",
+  "schema": "form_schema.json",
+  "form_engine": "auto",
+  "handlers": {
+    "python": "runtime.py"
+  }
+}

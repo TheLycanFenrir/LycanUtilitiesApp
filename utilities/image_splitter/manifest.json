@@ -1,0 +1,16 @@
+{
+  "id": "image_splitter",
+  "title": "Image Splitter",
+  "description": "Split large textures into grids, custom tile sizes or alpha components.",
+  "version": "1.0.0",
+  "icon": "✂️",
+  "icon_file": "assets/icons/image_splitter.png",
+  "badge": "Beta",
+  "tags": ["image", "texture", "split", "crop", "grid", "tile", "alpha", "resize"],
+  "runtime": "runtime.py",
+  "schema": "form_schema.json",
+  "form_engine": "auto",
+  "handlers": {
+    "python": "runtime.py"
+  }
+}

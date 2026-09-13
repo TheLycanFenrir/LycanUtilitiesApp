@@ -1,0 +1,1 @@
+"""Core Engine package: module scanning, caching, interop bridge and registry."""

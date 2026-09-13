@@ -20,6 +20,8 @@ Design notes
 
 from __future__ import annotations
 
+import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -27,25 +29,14 @@ import time
 import traceback
 import uuid
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor
-from threading import Event, Lock, Thread
+from threading import Event, Lock, RLock, Thread
 from typing import Any, Optional
 
 import psutil
 
-from api.FrameToVideo import ImageToVideo
-from api.ImageSplitter import (
-    ImageSplitter,
-    ExportSettings as ImageExportSettings,
-    SplitStatus,
-    SplitAbortedError,
-)
-from api.TextureMipMapGenerator import (
-    TextureMipMapGenerator,
-    TextureExportSettings,
-    MipStatus,
-)
-from utils.settings import (
+from core.interop import InteropContext, InteropError
+from core.scanner import load_utilities as _scan_utilities, descriptor as _util_descriptor
+from app.settings import (
     load_settings, save_settings, load_presets, save_presets,
     get_history, add_to_history, generate_unique_preset_name,
     load_favorites, toggle_favorite, record_used,
@@ -54,11 +45,11 @@ from utils.settings import (
     get_storage_stats, clear_all_data, clear_all_presets, clear_all_history,
     load_worker_queue, save_worker_queue,
 )
-from utils.system import (
-    get_dropdown_core_options, get_available_cores, get_cpu_name,
+from app.system import (
+    get_dropdown_core_options, get_cpu_name,
     detect_ffmpeg_binaries,
 )
-from app.info import APP_TITLE, APP_SUBTITLE, MAIN_CONTRIBUTOR, VERSION, TOOLS, HOME_VIEW_ID, GITHUB_REPOSITORY_URL
+from app.info import APP_TITLE, APP_SUBTITLE, MAIN_CONTRIBUTOR, VERSION, HOME_VIEW_ID, GITHUB_REPOSITORY_URL
 from app.updates import check_for_updates as run_update_check
 
 
@@ -72,39 +63,6 @@ EVENT_BUFFER_MAX = 2000
 # How long a finished job stays in self._jobs so a tool tab attaching after
 # completion can still replay its log/progress. get_queue() prunes past this.
 _FINISHED_JOB_GRACE = 120.0
-
-
-_OUTPUT_EXTENSIONS = {
-    "mp4_h264": ".mp4",
-    "mp4_av1": ".mp4",
-    "webm": ".webm",
-    "gif": ".gif",
-    "apng": ".apng",
-    "webp": ".webp",
-}
-
-_CRF_RANGES = {
-    "mp4_h264": (0, 51),
-    "mp4_av1": (0, 63),
-    "webm": (0, 63),
-    "webp": (0, 63),
-    "gif": (None, None),
-    "apng": (None, None),
-}
-
-
-def _clamp_crf(crf: Any, lo: Optional[int], hi: Optional[int]) -> Any:
-    try:
-        val = int(crf)
-    except (ValueError, TypeError):
-        return crf
-    if lo is not None and hi is not None:
-        return max(lo, min(val, hi))
-    if hi is not None:
-        return min(val, hi)
-    if lo is not None:
-        return max(val, lo)
-    return val
 
 
 class _Job:
@@ -149,12 +107,21 @@ class _Job:
         self.restored = False
 
 
-def _tool_title(tool: str) -> str:
-    return next((t.get("title") or t.get("id") for t in TOOLS if t.get("id") == tool), tool)
+def _tool_title(tool: str, utilities: Optional[dict] = None) -> str:
+    title = None
+    if utilities:
+        util = utilities.get(tool)
+        if util:
+            title = (util.get("manifest") or {}).get("title")
+    return title or tool
 
 
-def _tool_icon_file(tool: str) -> str:
-    return next((t.get("icon_file") or "" for t in TOOLS if t.get("id") == tool), "")
+def _tool_icon_file(tool: str, utilities: Optional[dict] = None) -> str:
+    icon = ""
+    if utilities and utilities.get(tool):
+        util = utilities.get(tool)
+        icon = util.get("icon_rel") or ""
+    return icon or ""
 
 
 class Api:
@@ -176,6 +143,14 @@ class Api:
         self._queue_process = False
         self._queue_worker_alive = False
         self._queue_history: deque[dict] = deque(maxlen=20)
+        # Modular hub: utilities scanned from utilities/ (validated + SHA-256 cached).
+        self._utilities_scan = _scan_utilities()
+        self._utilities: dict[str, dict] = self._utilities_scan.get("utilities") or {}
+        # Per-utility engine modules (named "engine" inside each utility folder).
+        # Loaded once per utility; sys.modules["engine"] is temporarily bound to
+        # the right one while its runtime executes, then restored.
+        self._util_engine_lock = RLock()
+        self._util_engines: dict[str, Any] = {}
         self._restore_queue()
 
     # ------------------------------------------------------------------ #
@@ -273,18 +248,23 @@ class Api:
             return {"ok": False, "reason": "failed"}
 
     def get_tools(self) -> list[dict]:
-        return [dict(t) for t in TOOLS]
+        """Tool hub: every validated utility from utilities/."""
+        return self._util_descriptors()
+
+    def _util_descriptors(self) -> list[dict]:
+        return [_util_descriptor(entry) for entry in self._utilities.values()]
 
     def get_dashboard(self) -> dict:
         favorites = load_favorites()
-        last_used = {}
-        from utils.settings import load_last_used
+        from app.settings import load_last_used
         last_used = load_last_used()
         tools = []
-        for t in TOOLS:
-            item = dict(t)
-            item["favorite"] = bool(favorites.get(t["id"], False))
-            item["last_used"] = last_used.get(t["id"])
+        for desc in self._util_descriptors():
+            mid = desc["id"]
+            item = dict(desc)
+            item["favorite"] = bool(favorites.get(mid, False))
+            item["last_used"] = last_used.get(mid)
+            item["coming_soon"] = not bool(desc.get("has_runtime"))
             tools.append(item)
         system = self.get_system_stats()
         return {
@@ -472,7 +452,7 @@ class Api:
         made the app appear to close, and the global hook needs no window help.
         """
         try:
-            from utils.screenpick import wait_for_screen_pick
+            from app.screenpick import wait_for_screen_pick
         except Exception:
             return {"ok": False, "reason": "unsupported"}
         try:
@@ -484,16 +464,156 @@ class Api:
     #  Jobs
     # ------------------------------------------------------------------ #
     def _runner_for(self, tool: str):
-        """Return the run-loop method for a tool id, or None if unsupported."""
-        return {
-            "frames_to_video": self._run_frames_to_video,
-            "image_splitter": self._run_image_splitter,
-            "texture_mipmap": self._run_texture_mipmap,
-        }.get(tool)
+        """Return the run-loop for a utility id, or None if unsupported."""
+        util = self._utilities.get(tool)
+        if util and util.get("runtime_ok"):
+            return self._run_utility
+        return None
 
     def _spawn_run(self, job: _Job) -> None:
         thread = Thread(target=self._runner_for(job.tool), args=(job, job.params), daemon=True)
         thread.start()
+
+    # ------------------------------------------------------------------ #
+    #  Modular runtime execution (utilities/ + interop bridge)
+    # ------------------------------------------------------------------ #
+    def _load_engine_module(self, tool: str, module_dir: str):
+        """Load a utility's ``engine.py`` once, keyed by tool id."""
+        cached = self._util_engines.get(tool)
+        if cached is not None:
+            return cached
+        engine_path = os.path.join(module_dir, "engine.py")
+        if not os.path.isfile(engine_path):
+            return None
+        with self._util_engine_lock:
+            cached = self._util_engines.get(tool)
+            if cached is not None:
+                return cached
+            spec = importlib.util.spec_from_file_location(f"util_{tool}_engine", engine_path)
+            if spec is None or spec.loader is None:
+                return None
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[spec.name] = module
+            try:
+                spec.loader.exec_module(module)
+            finally:
+                sys.modules.pop(spec.name, None)
+            self._util_engines[tool] = module
+            return module
+
+    def _run_utility(self, job: _Job, params: dict) -> None:
+        util = self._utilities.get(job.tool)
+        if not util or not util.get("runtime_ok"):
+            self._log(job, f"No runtime available for '{job.tool}'.", "warn")
+            self._done(job, False, "Runtime unavailable.", "utility missing runtime")
+            return
+        module_dir = util.get("dir")
+        runtime_path = os.path.join(module_dir, util.get("runtime_path") or "runtime.py")
+        added_path = False
+        engine_mod = None
+        try:
+            # The runtime imports its engine/settings straight from its own
+            # utility folder; make that folder importable, then remove it so we
+            # never hijack names for other utilities.
+            norm = os.path.normpath(module_dir)
+            if norm and norm not in sys.path:
+                sys.path.insert(0, norm)
+                added_path = True
+            spec = importlib.util.spec_from_file_location(f"util_{job.tool}", runtime_path)
+            if spec is None or spec.loader is None:
+                raise RuntimeError(f"Could not load {runtime_path}")
+            module = importlib.util.module_from_spec(spec)
+            with self._util_engine_lock:
+                saved_engine = sys.modules.get("engine")
+                try:
+                    # Point the shared "engine" import name at this utility's
+                    # engine while its runtime imports it (helpers may also use
+                    # "engine" bound globals afterwards).
+                    engine_mod = self._load_engine_module(job.tool, module_dir)
+                    if engine_mod is not None:
+                        sys.modules["engine"] = engine_mod
+                    sys.modules[spec.name] = module
+                    spec.loader.exec_module(module)
+                finally:
+                    if saved_engine is not None:
+                        sys.modules["engine"] = saved_engine
+                    else:
+                        sys.modules.pop("engine", None)
+                    sys.modules.pop(spec.name, None)
+                runner = getattr(module, "run", None)
+                if not callable(runner):
+                    raise RuntimeError(f"{runtime_path} must define run(ctx)")
+                ctx = InteropContext(self, job, params)
+                result = runner(ctx)
+        except InteropError as exc:
+            # Intentional halt; the context already logged + set the header.
+            if not job.finished:
+                self._done(job, False, str(exc), str(exc))
+            return
+        except Exception as exc:
+            traceback.print_exc()
+            self._log(job, f"Utility runtime crashed: {exc}", "error")
+            if not job.finished:
+                self._done(job, False, "Runtime crashed.", str(exc) or "utility error")
+            return
+        finally:
+            if added_path:
+                try:
+                    sys.path.remove(norm)
+                except ValueError:
+                    pass
+        if job.finished:
+            return
+        if job.abort_event.is_set():
+            self._done(job, False, "Cancelled.", None)
+            return
+        if isinstance(result, dict) and result.get("ok"):
+            message = result.get("message") or "Complete."
+            self._log(job, message)
+            self._status(job, "Finished", "green")
+            self._done(job, True, message)
+        elif isinstance(result, dict):
+            message = result.get("message") or "Failed."
+            self._done(job, False, message, result.get("reason") or message)
+        else:
+            self._done(job, True, "Complete.")
+
+    def get_tool_schema(self, tool_id: str) -> dict:
+        util = self._utilities.get(tool_id)
+        if not util:
+            return {"ok": False, "reason": "not_found"}
+        return {
+            "ok": True,
+            "manifest": util.get("manifest"),
+            "form_schema": util.get("form_schema"),
+            "icon_file": util.get("icon_rel") or util.get("manifest", {}).get("icon_file"),
+            "has_runtime": bool(util.get("runtime_ok")),
+            "runtime_file": util.get("runtime_path"),
+        }
+
+    @staticmethod
+    def _js_str(value: str) -> str:
+        return json.dumps(str(value), ensure_ascii=False)
+
+    @classmethod
+    def _js_value(cls, value: Any) -> str:
+        return json.dumps(value, ensure_ascii=False, default=str)
+
+    def _push_form_js(self, expression: str) -> bool:
+        """Evaluate JS on the live window (best effort, thread-safe).
+
+        Runtime threads push form mutations through this channel so Lua /
+        Python hooks can drive the React form. When no window is attached (or
+        the backend rejects the call), the mutation is simply skipped.
+        """
+        window = self._window()
+        if window is None:
+            return False
+        try:
+            window.evaluate_js(str(expression))
+            return True
+        except Exception:
+            return False
 
     def start_job(self, tool: str, params: dict) -> dict:
         with self._lock:
@@ -574,7 +694,7 @@ class Api:
                 self._queue_history.appendleft({
                     "job_id": job.id,
                     "tool": job.tool,
-                    "tool_title": _tool_title(job.tool),
+                    "tool_title": _tool_title(job.tool, self._utilities),
                     "label": job.label or "",
                     "outcome": "aborted",
                 })
@@ -627,7 +747,7 @@ class Api:
         with self._lock:
             job = _Job(uuid.uuid4().hex, tool, params)
             job.queued = True
-            job.label = f"{_tool_title(tool)} \u00b7 {job.id[:6]}"
+            job.label = f"{_tool_title(tool, self._utilities)} \u00b7 {job.id[:6]}"
             self._jobs[job.id] = job
             self._queue.append(job.id)
         record_used(tool)
@@ -777,7 +897,7 @@ class Api:
             job = _Job(job_id, tool, params)
             job.queued = True
             job.restored = True
-            job.label = f"{_tool_title(tool)} \u00b7 {job_id[:6]}"
+            job.label = f"{_tool_title(tool, self._utilities)} \u00b7 {job_id[:6]}"
             self._jobs[job.id] = job
             self._queue.append(job.id)
             restored.append(job_id)
@@ -820,7 +940,7 @@ class Api:
                     current = {
                         "job_id": job.id,
                         "tool": job.tool,
-                        "tool_title": _tool_title(job.tool),
+                        "tool_title": _tool_title(job.tool, self._utilities),
                         "label": job.label or "",
                         "progress": int(round(job.progress_pct)),
                         "status_text": job.status_text or "",
@@ -833,8 +953,8 @@ class Api:
                     pending.append({
                         "job_id": job.id,
                         "tool": job.tool,
-                        "tool_title": _tool_title(job.tool),
-                        "icon_file": _tool_icon_file(job.tool),
+                        "tool_title": _tool_title(job.tool, self._utilities),
+                        "icon_file": _tool_icon_file(job.tool, self._utilities),
                         "label": job.label or "",
                         "restored": job.restored,
                     })
@@ -875,7 +995,7 @@ class Api:
                         self._queue_current = None
                         self._queue_history.appendleft({
                             "job_id": job.id, "tool": job.tool,
-                            "tool_title": _tool_title(job.tool),
+                            "tool_title": _tool_title(job.tool, self._utilities),
                             "label": job.label or "", "outcome": "failed",
                         })
                         self._jobs.pop(job.id, None)
@@ -894,7 +1014,7 @@ class Api:
                     self._queue_current = None
                     self._queue_history.appendleft({
                         "job_id": job.id, "tool": job.tool,
-                        "tool_title": _tool_title(job.tool),
+                        "tool_title": _tool_title(job.tool, self._utilities),
                         "label": job.label or "", "outcome": outcome,
                     })
                 # Keep the finished job in self._jobs so a tab attaching after
@@ -1030,512 +1150,6 @@ class Api:
                     subprocess.Popen(["xdg-open", target])
         except Exception:
             pass
-
-    # ------------------------------------------------------------------ #
-    #  Frames -> Video
-    # ------------------------------------------------------------------ #
-    def _run_frames_to_video(self, job: _Job, p: dict) -> None:
-        source = str(p.get("source_folder", "")).strip()
-        output = str(p.get("output_file", "")).strip()
-        fmt = str(p.get("output_type", "mp4_h264"))
-        fps = p.get("fps", 30)
-        crf = p.get("crf")
-        threads = int(p.get("threads", 1) or 1)
-        transparent = bool(p.get("transparent", False))
-        q_mode = str(p.get("quality_mode", "crf")).lower()
-        bitrate = p.get("bitrate")
-        bg = p.get("background_color") or [0, 0, 0]
-        gif_colors = int(p.get("gif_color_limit", 256) or 256)
-        open_after = bool(p.get("open_explorer_after_conversion", False))
-        try:
-            total_cores = get_available_cores()
-            threads = max(1, min(int(threads), total_cores))
-        except Exception:
-            threads = 1
-
-        if not source:
-            self._log(job, "Please select a source folder.", "error")
-            self._done(job, False, "Missing source folder.", "Missing source folder.")
-            return
-        if not output:
-            self._log(job, "Please select an output file.", "error")
-            self._done(job, False, "Missing output file.", "Missing output file.")
-            return
-        try:
-            fps_val = float(fps)
-            if fps_val <= 0:
-                raise ValueError()
-        except Exception:
-            self._log(job, "Please enter a valid FPS value.", "error")
-            self._done(job, False, "Invalid FPS.", "Invalid FPS value.")
-            return
-
-        desired_ext = _OUTPUT_EXTENSIONS.get(fmt, ".mp4")
-        root, ext = os.path.splitext(output)
-        if ext.lower() != desired_ext:
-            output = root + desired_ext
-            self._log(job, f"Output extension adjusted to '{desired_ext}'.")
-
-        source_mode = str(p.get("source_mode", "folder")).lower()
-        if source_mode == "file":
-            if not os.path.isfile(source):
-                self._log(job, f"The source file '{source}' does not exist.", "error")
-                self._done(job, False, "Source file does not exist.", "missing source file")
-                return
-            frames_dir = os.path.dirname(source) or "."
-            self._log(job, f"Using directory of source file: {frames_dir}")
-        else:
-            if not os.path.isdir(source):
-                self._log(job, f"The source folder '{source}' does not exist.", "error")
-                self._done(job, False, "Source folder does not exist.", "missing source folder")
-                return
-            frames_dir = source
-
-        try:
-            all_files = [f for f in os.listdir(frames_dir) if not f.startswith(".")]
-            total_frames = len(all_files)
-        except Exception:
-            total_frames = None
-
-        out_dir = os.path.dirname(output) or "."
-        if out_dir and not os.path.isdir(out_dir):
-            try:
-                os.makedirs(out_dir, exist_ok=True)
-                self._log(job, f"Created output folder: {out_dir}")
-            except Exception:
-                self._log(job, f"The output folder '{out_dir}' could not be created.", "error")
-                self._done(job, False, "Output folder does not exist.", "missing output folder")
-                return
-        if os.path.exists(output):
-            if not self._confirm(job, f"The file '{output}' already exists. Do you want to replace it?",
-                                 title="File Exists Warning", yes="Replace", no="Cancel"):
-                self._log(job, "Conversion cancelled because the output file already exists.", "warn")
-                self._done(job, False, "Cancelled by user.", None)
-                return
-
-        # GIF / APNG safety prompts
-        if fmt == "gif":
-            gif_colors = max(4, min(gif_colors, 256))
-            if fps_val > 50:
-                if not self._confirm(job, "GIFs with FPS over 50 may be very large and play poorly. Continue anyway?",
-                                     title="High FPS Warning", yes="Continue", no="Cancel"):
-                    self._done(job, False, "Cancelled by user.", None)
-                    return
-            if fps_val > 100:
-                self._log(job, "GIF FPS cannot exceed 100. It will be clamped to 100.", "warn")
-                fps_val = 100.0
-            if total_frames is not None and total_frames > 300:
-                if not self._confirm(job, f"GIF with {total_frames} frames may produce a very large file. Consider using WebM instead. Continue with GIF?",
-                                     title="Many Frames Warning", yes="Continue", no="Cancel"):
-                    self._done(job, False, "Cancelled by user.", None)
-                    return
-        if fmt == "apng":
-            if fps_val > 50:
-                if not self._confirm(job, "APNGs with FPS over 50 may be very large and play poorly. Continue anyway?",
-                                     title="High FPS Warning", yes="Continue", no="Cancel"):
-                    self._done(job, False, "Cancelled by user.", None)
-                    return
-            if fps_val > 100:
-                self._log(job, "APNG FPS cannot exceed 100. It will be clamped to 100.", "warn")
-                fps_val = 100.0
-            if total_frames is not None and total_frames > 100:
-                if not self._confirm(job, f"APNG with {total_frames} frames may produce a very large file. Consider using WebM instead. Continue with APNG?",
-                                     title="Many Frames Warning", yes="Continue", no="Cancel"):
-                    self._done(job, False, "Cancelled by user.", None)
-                    return
-
-        # CRF handling
-        crf_int = crf
-        lo, hi = _CRF_RANGES.get(fmt, (None, None))
-        if crf is not None and fmt in ("mp4_h264", "mp4_av1", "webm", "webp"):
-            try:
-                crf_int = int(crf)
-            except (ValueError, TypeError):
-                self._log(job, "Please enter a valid integer CRF value.", "error")
-                self._done(job, False, "Invalid CRF value.", "Invalid CRF value.")
-                return
-            crf_int = _clamp_crf(crf_int, 0, hi)
-
-        # Bitrate sanity check
-        bitrate_val = None
-        if q_mode in ("bitrate", "2-pass vbr"):
-            try:
-                bitrate_val = int(bitrate)
-                if bitrate_val <= 0:
-                    raise ValueError()
-            except (ValueError, TypeError):
-                bitrate_val = 8000
-            try:
-                w, h = ImageToVideo.get_dimensions_from_first_frame_static(frames_dir)
-                self._check_bitrate(job, bitrate_val, w, h, fps_val)
-            except Exception as exc:
-                self._log(job, f"Could not validate bitrate: {exc}", "warn")
-
-        try:
-            bg_color = (int(bg[0] or 0), int(bg[1] or 0), int(bg[2] or 0))
-        except Exception:
-            bg_color = (0, 0, 0)
-
-        self._log(job, "Starting conversion...")
-        self._log(job, f"Source: {source}")
-        self._log(job, f"Output: {output}")
-        self._log(job, f"Format: {fmt}")
-        self._log(job, f"FPS: {fps_val}")
-        if crf_int is not None and q_mode != "lossless":
-            self._log(job, f"CRF: {crf_int}")
-        self._log(job, f"Threads: {threads}")
-
-        try:
-            self._status(job, "Checking FFmpeg...", "blue")
-            ImageToVideo.ffmpeg_checker()
-            self._log(job, "FFmpeg check passed.")
-        except Exception as exc:
-            self._status(job, "FFmpeg is missing", "red")
-            self._log(job, str(exc), "error")
-            self._done(job, False, "FFmpeg not found.", str(exc))
-            return
-
-        self._status(job, "Converting video...", "blue")
-        try:
-            ImageToVideo.frames_to_video(
-                frames_dir, output, fmt, transparent, float(fps_val), crf_int,
-                progress_callback=lambda pct: self._progress(job, pct,
-                                                             f"Converting frames to video... {pct}%"),
-                amount_threads=threads,
-                abort_event=job.abort_event,
-                pause_event=job.pause_event,
-                gif_max_colors=gif_colors if fmt == "gif" else None,
-                apng_transparent=transparent,
-                gif_transparent=transparent,
-                webp_transparent=transparent,
-                background_color=bg_color,
-                quality_mode=q_mode,
-                bitrate=bitrate_val,
-            )
-            if job.abort_event.is_set():
-                self._status(job, "Conversion aborted by user.", "orange")
-                self._log(job, "Conversion aborted by user.", "warn")
-                self._done(job, False, "Aborted by user.", None)
-                return
-            self._progress(job, 100, "Video converted successfully!")
-            self._status(job, "Video converted successfully!", "green")
-            self._log(job, "Conversion completed successfully!")
-            if open_after:
-                self._open_explorer(output)
-                self._log(job, f"Opened file explorer: {os.path.dirname(output)}")
-            self._done(job, True, "Video has been converted successfully!")
-        except Exception as exc:
-            self._log(job, "ERROR: Conversion failed!", "error")
-            if "ABORTED_BY_USER" in str(exc):
-                self._status(job, "Conversion aborted by user.", "orange")
-                self._log(job, "Conversion aborted by user.", "warn")
-                self._done(job, False, "Aborted by user.", None)
-            else:
-                detail = self._format_exception(exc)
-                self._log(job, detail, "error")
-                self._status(job, "Error occurred during conversion", "red")
-                self._done(job, False, "Conversion failed.", detail)
-
-    def _check_bitrate(self, job: _Job, bitrate_bps, width, height, fps) -> None:
-        total_pixels = width * height
-        try:
-            if total_pixels > 0 and fps > 0:
-                bpp = (bitrate_bps * 1000) / (total_pixels * fps)
-                if bpp > 0.3:
-                    if not self._confirm(
-                            job,
-                            "Bitrate is too high for the given resolution and FPS that may cause the file size to be too large and issues with playback. Do you want to continue?",
-                            title="Bitrate too high",
-                            yes="Continue", no="Cancel"):
-                        raise RuntimeError("ABORTED_BY_USER")
-                elif bpp < 0.03:
-                    if not self._confirm(
-                            job,
-                            "Bitrate is too low for the given resolution and FPS that may cause blurry video. Do you want to continue?",
-                            title="Bitrate too low",
-                            yes="Continue", no="Cancel"):
-                        raise RuntimeError("ABORTED_BY_USER")
-        except (FileNotFoundError, OSError):
-            pass
-
-    # ------------------------------------------------------------------ #
-    #  Image Splitter
-    # ------------------------------------------------------------------ #
-    def _run_image_splitter(self, job: _Job, p: dict) -> None:
-        source = str(p.get("source", "")).strip()
-        out = str(p.get("output", "")).strip()
-        mode = str(p.get("mode", "grid"))
-        fmt = str(p.get("image_format", "png")).lower()
-        source_mode = str(p.get("source_mode", "single"))
-        if not source or not out:
-            self._log(job, "Source and output must be set.", "error")
-            self._done(job, False, "Missing source or output.", "Missing source or output.")
-            return
-
-        try:
-            quality = int(p.get("quality", 95))
-            quality = max(1, min(100, quality))
-        except (ValueError, TypeError):
-            quality = 95
-        try:
-            compress_level = int(p.get("png_compress_level", 6))
-            compress_level = max(0, min(9, compress_level))
-        except (ValueError, TypeError):
-            compress_level = 6
-        try:
-            bleed_radius = int(p.get("bleed_radius", 0) or 0)
-            bleed_radius = max(0, bleed_radius)
-        except (ValueError, TypeError):
-            bleed_radius = 0
-
-        export = ImageExportSettings(
-            image_format=fmt,
-            quality=quality,
-            png_compress_level=compress_level,
-            discard_blank_tiles=bool(p.get("discard_blank_tiles", False)),
-            tga_compression=str(p.get("tga_compression", "none")),
-            tiff_compression=str(p.get("tiff_compression", "none")),
-            bleed_radius=bleed_radius,
-        )
-
-        save_executor = ThreadPoolExecutor(max_workers=4)
-        splitter = ImageSplitter(
-            callback=lambda status: self._split_status(job, status),
-            callback_executor=None,
-            abort_event=job.abort_event,
-            pause_event=job.pause_event,
-            save_executor=save_executor,
-            confirm_callback=lambda msg: self._confirm(job, msg, title="File Count Warning",
-                                                       yes="Proceed", no="Cancel"),
-        )
-
-        def run_file(path: str) -> tuple[int, int]:
-            if mode == "grid":
-                rows = int(p.get("rows", 1) or 1)
-                cols = int(p.get("columns", 1) or 1)
-                res_mode = str(p.get("resolution_mode", "allow_variation") or "allow_variation")
-                pad_mode = str(p.get("padding_mode", "edge") or "edge")
-                result = splitter.split_grid(path, out, rows, cols,
-                                             resolution_mode=res_mode, padding_mode=pad_mode,
-                                             export=export,
-                                             naming_template=str(p.get("naming_template",
-                                                                       "{basename}_r{row}_c{col}_w{width}_h{height}.{ext}")))
-            elif mode == "tile_size":
-                tw = int(p.get("tile_width", 512) or 512)
-                th = int(p.get("tile_height", 512) or 512)
-                res_mode = str(p.get("resolution_mode", "allow_variation") or "allow_variation")
-                pad_mode = str(p.get("padding_mode", "edge") or "edge")
-                result = splitter.split_dimensions(path, out, tw, th,
-                                                   resolution_mode=res_mode, padding_mode=pad_mode,
-                                                   export=export,
-                                                   naming_template=str(p.get("naming_template",
-                                                                             "{basename}_r{row}_c{col}_w{width}_h{height}.{ext}")))
-            else:  # alpha_components
-                alpha = int(p.get("alpha_threshold", 0) or 0)
-                result = splitter.split_transparent_components(
-                    path, out, alpha_threshold=alpha, export=export,
-                    naming_template=str(p.get("naming_template", "{basename}_tile_{index}.{ext}")))
-            return len(result.tiles), 0
-
-        try:
-            if source_mode == "bulk":
-                if not os.path.isdir(source):
-                    self._log(job, f"Error: Source folder does not exist: {source}", "error")
-                    self._done(job, False, "Source folder does not exist.", "missing source folder")
-                    return
-                image_files = [f for f in os.listdir(source)
-                               if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".tga", ".tiff", ".bmp"))]
-                if not image_files:
-                    self._log(job, "Error: No image files found in source folder", "error")
-                    self._done(job, False, "No image files found.", "no image files")
-                    return
-                self._log(job, f"Found {len(image_files)} images to process")
-                for idx, img_file in enumerate(image_files, 1):
-                    self._wait_if_paused(job)
-                    if job.abort_event.is_set():
-                        self._log(job, "Abort requested; stopping bulk processing.", "warn")
-                        break
-                    img_path = os.path.join(source, img_file)
-                    self._log(job, f"Processing {idx}/{len(image_files)}: {img_file}")
-                    try:
-                        run_file(img_path)
-                        self._log(job, f"Completed {idx}/{len(image_files)}: {img_file}")
-                    except SplitAbortedError:
-                        raise
-                    except Exception as exc:
-                        self._log(job, f"Error processing {img_file}: {exc}", "error")
-                        self._log(job, traceback.format_exc(), "error")
-                self._log(job, f"Bulk split complete. Processed {len(image_files)} images.")
-            else:
-                if not os.path.isfile(source):
-                    self._log(job, f"Error: Source file does not exist: {source}", "error")
-                    self._done(job, False, "Source file does not exist.", "missing source file")
-                    return
-                self._log(job, "Starting split...")
-                run_file(source)
-                self._log(job, "Split complete.")
-
-            if job.abort_event.is_set():
-                self._log(job, "Split operation aborted by user.", "warn")
-                self._status(job, "Split operation aborted by user.", "orange")
-                self._done(job, False, "Aborted by user.", None)
-                return
-            self._progress(job, 100, "Split complete!")
-            if p.get("open_explorer_after_conversion", False):
-                self._open_explorer(out)
-            self._status(job, "Split completed successfully!", "green")
-            self._done(job, True, "Split completed successfully!")
-        except SplitAbortedError as exc:
-            if job.abort_event.is_set():
-                self._status(job, "Split aborted.", "orange")
-                self._done(job, False, "Aborted by user.", None)
-            else:
-                self._log(job, f"Split aborted: {exc}", "warn")
-                self._status(job, "Split aborted.", "orange")
-                self._done(job, False, "Split aborted.", str(exc))
-        except Exception as exc:
-            self._log(job, f"Error: {exc}", "error")
-            self._log(job, traceback.format_exc(), "error")
-            if job.abort_event.is_set():
-                self._log(job, "Split operation aborted by user.", "warn")
-                self._status(job, "Split operation aborted by user.", "orange")
-                self._done(job, False, "Aborted by user.", None)
-            else:
-                self._status(job, "Split failed.", "red")
-                self._done(job, False, "Split failed.", str(exc))
-        finally:
-            try:
-                if job.abort_event.is_set():
-                    save_executor.shutdown(wait=False, cancel_futures=True)
-                else:
-                    save_executor.shutdown(wait=True)
-            except Exception:
-                pass
-
-    def _split_status(self, job: _Job, status: SplitStatus) -> None:
-        event = str(status.event).lower()
-        if event in {"warning", "error", "aborted", "completed", "complete", "finished", "failed"}:
-            msg = f"[{status.event}] {status.message}"
-            if status.total:
-                msg += f" ({status.completed}/{status.total})"
-            self._log(job, msg, "error" if event == "error" else
-                      ("warn" if event in {"warning", "aborted", "failed"} else "info"))
-            if status.total:
-                self._progress(job, status.completed / status.total * 100)
-        elif status.total:
-            self._progress(job, status.completed / status.total * 100)
-
-    # ------------------------------------------------------------------ #
-    #  Texture Mipmap
-    # ------------------------------------------------------------------ #
-    def _run_texture_mipmap(self, job: _Job, p: dict) -> None:
-        source = str(p.get("source", "")).strip()
-        out = str(p.get("output", "")).strip()
-        source_mode = str(p.get("source_mode", "single"))
-        if not source or not out:
-            self._log(job, "Source and output must be set.", "error")
-            self._done(job, False, "Missing source or output.", "Missing source or output.")
-            return
-
-        fmt = str(p.get("image_format", "png")).lower()
-        try:
-            quality = int(p.get("quality", 95))
-            quality = max(1, min(100, quality))
-        except (ValueError, TypeError):
-            quality = 95
-        try:
-            compress_level = int(p.get("png_compress_level", 6))
-            compress_level = max(0, min(9, compress_level))
-        except (ValueError, TypeError):
-            compress_level = 6
-
-        export = TextureExportSettings(
-            image_format=fmt,
-            quality=quality,
-            png_compress_level=compress_level,
-            retain_alpha=bool(p.get("retain_alpha", True)),
-            tga_compression=str(p.get("tga_compression", "none")),
-            tiff_compression=str(p.get("tiff_compression", "none")),
-        )
-
-        gen = TextureMipMapGenerator(callback=lambda st: self._mip_status(job, st),
-                                     abort_event=job.abort_event,
-                                     pause_event=job.pause_event)
-        naming = str(p.get("naming_template", "{texture_name}_mip{level}.{ext}"))
-        normal_map = bool(p.get("normal_map", False))
-        npot_mode = str(p.get("npot_mode", "none") or "none")
-        res_filter = str(p.get("resample_filter", "lanczos") or "lanczos")
-        export_dds = bool(p.get("export_dds", False))
-
-        def run_file(path: str) -> None:
-            gen.export(path, out, normal_map=normal_map, npot_mode=npot_mode,
-                       resample_filter=res_filter, export=export,
-                       naming_template=naming, export_dds=export_dds)
-
-        try:
-            if source_mode == "bulk":
-                if not os.path.isdir(source):
-                    self._log(job, f"Error: Source folder does not exist: {source}", "error")
-                    self._done(job, False, "Source folder does not exist.", "missing source folder")
-                    return
-                image_files = [f for f in os.listdir(source)
-                               if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".tga", ".tiff", ".bmp"))]
-                if not image_files:
-                    self._log(job, "Error: No image files found in source folder", "error")
-                    self._done(job, False, "No image files found.", "no image files")
-                    return
-                self._log(job, f"Found {len(image_files)} textures to process")
-                for idx, img_file in enumerate(image_files, 1):
-                    self._wait_if_paused(job)
-                    if job.abort_event.is_set():
-                        self._log(job, "Abort requested; stopping bulk processing.", "warn")
-                        break
-                    img_path = os.path.join(source, img_file)
-                    self._log(job, f"Processing {idx}/{len(image_files)}: {img_file}")
-                    try:
-                        run_file(img_path)
-                        self._log(job, f"Completed {idx}/{len(image_files)}: {img_file}")
-                    except Exception as exc:
-                        self._log(job, f"Error processing {img_file}: {exc}", "error")
-                self._log(job, f"Bulk mipmap generation complete. Processed {len(image_files)} textures.")
-            else:
-                if not os.path.isfile(source):
-                    self._log(job, f"Error: Source file does not exist: {source}", "error")
-                    self._done(job, False, "Source file does not exist.", "missing source file")
-                    return
-                self._log(job, "Starting mipmap generation...")
-                run_file(source)
-                self._log(job, "Mipmap generation complete.")
-
-            if job.abort_event.is_set():
-                self._log(job, "Mipmap generation aborted by user.", "warn")
-                self._status(job, "Mipmap generation aborted by user.", "orange")
-                self._done(job, False, "Aborted by user.", None)
-                return
-            self._progress(job, 100, "Mipmap generation complete!")
-            if p.get("open_explorer_after_conversion", False):
-                self._open_explorer(out)
-            self._status(job, "Mipmaps generated successfully!", "green")
-            self._done(job, True, "Mipmap generation completed successfully!")
-        except Exception as exc:
-            if job.abort_event.is_set() or "ABORTED_BY_USER" in str(exc):
-                self._log(job, "Mipmap generation aborted by user.", "warn")
-                self._status(job, "Mipmap generation aborted by user.", "orange")
-                self._done(job, False, "Aborted by user.", None)
-                return
-            self._log(job, f"Error: {exc}", "error")
-            self._log(job, traceback.format_exc(), "error")
-            self._status(job, "Mipmap generation failed.", "red")
-            self._done(job, False, "Mipmap generation failed.", str(exc))
-
-    def _mip_status(self, job: _Job, status: MipStatus) -> None:
-        event = str(status.event).lower()
-        if event in {"level_saved", "level_generated"}:
-            self._log(job, f"[{status.event}] Level {status.level}: {status.message} Size={status.size[0]}x{status.size[1]}")
-        elif event == "dds_fallback":
-            self._log(job, f"[{status.event}] {status.message}", "warn")
-        else:
-            self._log(job, repr(status))
 
     # ------------------------------------------------------------------ #
     #  Helpers

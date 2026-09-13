@@ -5,15 +5,7 @@ import { showToast } from "./utils/platform/toast.js";
 import Shell from "./components/layout/Shell.jsx";
 import { ToolHeader } from "./tabs/common/components/TabChrome.jsx";
 import HomeDashboard from "./tabs/HomeDashboard.jsx";
-import FramesToVideoTab from "./tabs/FramesToVideoTab.jsx";
-import ImageSplitterTab from "./tabs/ImageSplitterTab.jsx";
-import TextureMipmapTab from "./tabs/TextureMipmapTab.jsx";
-
-const TOOL_COMPONENTS = {
-  frames_to_video: FramesToVideoTab,
-  image_splitter: ImageSplitterTab,
-  texture_mipmap: TextureMipmapTab,
-};
+import FormTool from "./tabs/FormTool.jsx";
 
 function ComingSoon({ tool, onBack }) {
   return (
@@ -153,7 +145,7 @@ export default function App() {
     [call],
   );
 
-  const ActiveComponent = active ? TOOL_COMPONENTS[active.id] : null;
+  const ActiveComponent = active && (active.form_schema ? FormTool : null);
 
   return (
     <Shell call={call} app={app} cpuName={cpuName} goHome={goHome} onFocusTool={openTool} onEditJob={editQueuedJob}>

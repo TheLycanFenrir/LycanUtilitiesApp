@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Icon } from "../components/common/SvgIcon.jsx";
 import { highlight } from "../components/settings/highlight.jsx";
 import useCyanPulse from "../hooks/useCyanPulse.js";
+import { toolIconFile } from "../utils/paths/paths.js";
 
 const PILLS = [
   ["all", "All", "grid"],
@@ -52,7 +53,7 @@ function Card({ tool, onOpen, onToggleFavorite, query }) {
     >
       <div className="card-icon">
         {tool.icon_file && imgOk ? (
-          <img src={"assets/icons/" + tool.icon_file} alt="" onError={() => setImgOk(false)} />
+          <img src={toolIconFile(tool.icon_file)} alt="" onError={() => setImgOk(false)} />
         ) : (
           <span style={{ fontSize: 30 }}>{tool.icon || "?"}</span>
         )}

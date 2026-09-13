@@ -1,0 +1,16 @@
+{
+  "id": "texture_mipmap",
+  "title": "Texture Mipmap Generator",
+  "description": "Generate mipmap chains for DDS and other texture workflows.",
+  "version": "1.0.0",
+  "icon": "🧊",
+  "icon_file": "assets/icons/texture_mipmap_generator.png",
+  "badge": "Alpha",
+  "tags": ["texture", "mipmap", "dds", "generate", "3d", "chain"],
+  "runtime": "runtime.py",
+  "schema": "form_schema.json",
+  "form_engine": "auto",
+  "handlers": {
+    "python": "runtime.py"
+  }
+}

@@ -1,0 +1,334 @@
+{
+  "fields": [
+    {
+      "field_id": "source_mode",
+      "type": "dropdown",
+      "label_name": "Source Type",
+      "default_input": "single",
+      "pre_defined_dropdown": [
+        [
+          "single",
+          "Single Image"
+        ],
+        [
+          "bulk",
+          "Folder (bulk)"
+        ]
+      ]
+    },
+    {
+      "field_id": "source",
+      "type": "file",
+      "label_name": "Source",
+      "mode": {
+        "parts": [
+          [
+            "source_mode",
+            "bulk",
+            "folder"
+          ]
+        ],
+        "default": "file"
+      },
+      "file_types": "Images (*.png;*.jpg;*.jpeg;*.webp;*.tga;*.tiff;*.bmp)",
+      "required": true,
+      "placeholder": "The image file to split"
+    },
+    {
+      "field_id": "output",
+      "type": "file",
+      "label_name": "Output Folder",
+      "mode": "folder",
+      "placeholder": "Where the tiles will be saved",
+      "required": true
+    },
+    {
+      "field_id": "mode",
+      "type": "dropdown",
+      "label_name": "Split Mode",
+      "default_input": "grid",
+      "pre_defined_dropdown": [
+        [
+          "grid",
+          "Grid (rows x columns)"
+        ],
+        [
+          "tile_size",
+          "Custom Tile Size (pixels)"
+        ],
+        [
+          "alpha_components",
+          "Transparency Components"
+        ]
+      ]
+    },
+    {
+      "field_id": "rows",
+      "type": "number",
+      "label_name": "Rows",
+      "default_input": 1,
+      "min": 1,
+      "allow_decimal": false,
+      "show_if": {
+        "field": "mode",
+        "equals": "grid"
+      }
+    },
+    {
+      "field_id": "columns",
+      "type": "number",
+      "label_name": "Columns",
+      "default_input": 1,
+      "min": 1,
+      "allow_decimal": false,
+      "show_if": {
+        "field": "mode",
+        "equals": "grid"
+      }
+    },
+    {
+      "field_id": "tile_width",
+      "type": "number",
+      "label_name": "Tile Width (px)",
+      "default_input": 512,
+      "min": 1,
+      "allow_decimal": false,
+      "show_if": {
+        "field": "mode",
+        "equals": "tile_size"
+      }
+    },
+    {
+      "field_id": "tile_height",
+      "type": "number",
+      "label_name": "Tile Height (px)",
+      "default_input": 512,
+      "min": 1,
+      "allow_decimal": false,
+      "show_if": {
+        "field": "mode",
+        "equals": "tile_size"
+      }
+    },
+    {
+      "field_id": "alpha_threshold",
+      "type": "number",
+      "label_name": "Alpha Threshold",
+      "default_input": 0,
+      "min": 0,
+      "max": 255,
+      "allow_decimal": false,
+      "tooltip": "Pixels with alpha above this value count as part of a component."
+    },
+    {
+      "field_id": "resolution_mode",
+      "type": "dropdown",
+      "label_name": "Resolution Mode",
+      "default_input": "allow_variation",
+      "pre_defined_dropdown": [
+        [
+          "allow_variation",
+          "Allow Variation (uneven tiles)"
+        ],
+        [
+          "bleed_padding",
+          "Bleed / Edge Padding"
+        ],
+        [
+          "crop_to_fit",
+          "Crop to Fit"
+        ],
+        [
+          "abort",
+          "Abort After Partial Detection"
+        ]
+      ],
+      "show_if": {
+        "field": "mode",
+        "not_in": [
+          "alpha_components"
+        ]
+      }
+    },
+    {
+      "field_id": "padding_mode",
+      "type": "dropdown",
+      "label_name": "Padding Mode",
+      "default_input": "edge",
+      "pre_defined_dropdown": [
+        [
+          "edge",
+          "Edge Padding"
+        ],
+        [
+          "reflect",
+          "Reflect Padding"
+        ],
+        [
+          "texture_bleed",
+          "Texture Bleed"
+        ]
+      ],
+      "show_if": {
+        "field": "mode",
+        "not_in": [
+          "alpha_components"
+        ]
+      }
+    },
+    {
+      "field_id": "bleed_radius",
+      "type": "number",
+      "label_name": "Bleed Radius (px)",
+      "default_input": 0,
+      "min": 0,
+      "allow_decimal": false,
+      "tooltip": "Pixels of edge texel extrusion used by texture-bleed padding.",
+      "show_if": {
+        "field": "mode",
+        "not_in": [
+          "alpha_components"
+        ]
+      }
+    },
+    {
+      "field_id": "image_format",
+      "type": "dropdown",
+      "label_name": "Image Format",
+      "default_input": "png",
+      "pre_defined_dropdown": [
+        [
+          "png",
+          "PNG"
+        ],
+        [
+          "jpg",
+          "JPG"
+        ],
+        [
+          "jpeg",
+          "JPEG"
+        ],
+        [
+          "webp",
+          "WEBP"
+        ],
+        [
+          "tga",
+          "TGA"
+        ],
+        [
+          "tiff",
+          "TIFF"
+        ]
+      ]
+    },
+    {
+      "field_id": "quality",
+      "type": "number",
+      "label_name": "Quality (1-100)",
+      "default_input": 95,
+      "min": 1,
+      "max": 100,
+      "allow_decimal": false,
+      "show_if": {
+        "any": [
+          {
+            "field": "image_format",
+            "in": [
+              "jpg",
+              "jpeg",
+              "webp"
+            ]
+          },
+          {
+            "all": [
+              {
+                "field": "image_format",
+                "equals": "tiff"
+              },
+              {
+                "field": "tiff_compression",
+                "equals": "jpeg"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "field_id": "png_compress_level",
+      "type": "number",
+      "label_name": "PNG Compression Level (0-9)",
+      "default_input": 6,
+      "min": 0,
+      "max": 9,
+      "allow_decimal": false,
+      "show_if": {
+        "field": "image_format",
+        "equals": "png"
+      }
+    },
+    {
+      "field_id": "tga_compression",
+      "type": "dropdown",
+      "label_name": "TGA Compression",
+      "default_input": "none",
+      "pre_defined_dropdown": [
+        [
+          "none",
+          "None"
+        ],
+        [
+          "rle",
+          "RLE"
+        ]
+      ],
+      "show_if": {
+        "field": "image_format",
+        "equals": "tga"
+      }
+    },
+    {
+      "field_id": "tiff_compression",
+      "type": "dropdown",
+      "label_name": "TIFF Compression",
+      "default_input": "none",
+      "pre_defined_dropdown": [
+        [
+          "none",
+          "None"
+        ],
+        [
+          "lzw",
+          "LZW"
+        ],
+        [
+          "zip",
+          "ZIP"
+        ],
+        [
+          "jpeg",
+          "JPEG"
+        ]
+      ],
+      "show_if": {
+        "field": "image_format",
+        "equals": "tiff"
+      }
+    },
+    {
+      "field_id": "discard_blank_tiles",
+      "type": "checkbox",
+      "label_name": "Discard Blank (Fully Transparent) Tiles",
+      "default_input": false
+    },
+    {
+      "field_id": "naming_template",
+      "type": "text",
+      "label_name": "Naming Template",
+      "default_input": "{basename}_r{row}_c{col}_w{width}_h{height}.{ext}",
+      "tooltip": "Tokens: {basename} {row} {col} {index} {width} {height} {ext}"
+    }
+  ]
+}

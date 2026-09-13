@@ -12,7 +12,7 @@ import json
 import urllib.request
 
 from app.info import VERSION
-from utils.settings import load_app_settings
+from app.settings import load_app_settings
 
 _REPO_SLUG = "TheLycanFenrir/LycanUtilitiesApp"
 _RELEASES_URL = f"https://github.com/{_REPO_SLUG}/releases/latest"

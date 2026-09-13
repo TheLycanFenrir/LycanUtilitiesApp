@@ -12,7 +12,6 @@ import sys
 import traceback
 
 from app.info import APP_TITLE, MAIN_CONTRIBUTOR, VERSION
-from app.info import TOOLS
 
 # CONFIGURATION
 # Last applied datetime (ISO 8601): user-provided runtime
@@ -40,10 +39,6 @@ def _notify_user(title: str, text: str) -> None:
         ctypes.windll.user32.MessageBoxW(0, text, title, 0x10)
     except Exception:
         print(f"[{title}] {text}")
-
-def get_tools_info():
-    """Get the tools registry used by the home dashboard cards and the backend job runner."""
-    return TOOLS
 
 def run() -> None:
     """Start the PyWebView window hosting the SPA frontend."""

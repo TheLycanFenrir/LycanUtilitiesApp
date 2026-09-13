@@ -1,0 +1,17 @@
+{
+  "id": "image_watermarker",
+  "title": "Image Watermarker",
+  "description": "Watermark any image with text or logos",
+  "version": "1.0.0",
+  "icon_file": "assets/icons/video_audio_merger.png",
+  "icon": "🖼️",
+  "badge": "Coming Soon",
+  "tags": ["image", "watermark", "overlay", "text", "logo"],
+  "runtime": "runtime.py",
+  "schema": "form_schema.json",
+  "form_engine": "auto",
+  "handlers": {
+    "python": "runtime.py",
+    "lua": "runtime.lua"
+  }
+}

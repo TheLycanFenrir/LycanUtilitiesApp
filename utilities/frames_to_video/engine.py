@@ -518,7 +518,7 @@ class ImageToVideo:
         location does not actually provide FFmpeg, so a misconfigured path is
         never silently replaced by the system binary.
         """
-        from utils.settings import load_app_settings
+        from app.settings import load_app_settings
         ffmpeg = (load_app_settings() or {}).get("ffmpeg", {}) or {}
         use_system = bool(ffmpeg.get("use_system_path", True))
         configured = str(ffmpeg.get("path") or "").strip()

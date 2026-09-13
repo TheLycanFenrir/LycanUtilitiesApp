@@ -56,3 +56,9 @@ ehthumbs.db
 *.whl
 *.tar.gz
 MANIFEST
+
+# --- Tier-0 utilities scanner caches -----------------------------------------
+utilities/utilities_cache.json
+utilities/util_lists_cache-lock.json
+userdata/mods_cache.json
+userdata/util_lists_cache-lock.json
