@@ -8,7 +8,7 @@ import FormGenerator from "../components/FormGenerator/FormGenerator.jsx";
 import { FormStateProvider, useFormState } from "../contexts/FormStateContext.jsx";
 import { hexToRgb } from "../utils/color/colorMath.js";
 
-function FormToolInner({ tool, call, console, onBack, focusJobId, queuedEdit, onQueuedEditDone, queueRunning }) {
+function FormToolInner({ tool, call, console, onBack, focusJobId, queuedEdit, onQueuedEditDone, queueRunning, schemaDescription }) {
   const { getAll, setAll, reset, schema } = useFormState();
   const [openExplorer, setOpenExplorer] = useState(false);
   const [queued, setQueued] = useState(false);
@@ -137,7 +137,7 @@ function FormToolInner({ tool, call, console, onBack, focusJobId, queuedEdit, on
       openExplorer={openExplorer}
       onOpenExplorerChange={setOpenExplorer}
     >
-      <FormGenerator call={call} />
+      <FormGenerator call={call} description={schemaDescription} />
     </ToolTabLayout>
   );
 }
@@ -147,6 +147,8 @@ export default function FormTool({ tool, onBack, focusJobId, queuedEdit, onQueue
   const console = useJobConsole({ call });
   const fields = (tool.form_schema && tool.form_schema.fields) || [];
   const fieldsKey = JSON.stringify(fields);
+  const schemaDescription =
+    tool.form_schema && typeof tool.form_schema.description === "string" ? tool.form_schema.description : null;
   return (
     <FormStateProvider moduleId={tool.id} fieldsKey={fieldsKey} fields={fields}>
       <FormToolInner
@@ -158,6 +160,7 @@ export default function FormTool({ tool, onBack, focusJobId, queuedEdit, onQueue
         queuedEdit={queuedEdit}
         onQueuedEditDone={onQueuedEditDone}
         queueRunning={queueRunning}
+        schemaDescription={schemaDescription}
       />
     </FormStateProvider>
   );

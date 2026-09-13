@@ -192,6 +192,7 @@ export default function FormField({ entry, call }) {
       <label htmlFor={domId}>{schema.label_name || schema.field_id}{schema.required ? <span className="req"> *</span> : null}</label>
       <UseFocusWatcher schema={schema} controlRef={controlRef} />
       {control}
+      {schema.description ? <div className="field-note">{schema.description}</div> : null}
       {schema.tooltip ? <div className="field-note">{schema.tooltip}</div> : null}
     </div>
   );

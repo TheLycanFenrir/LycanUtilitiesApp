@@ -41,6 +41,9 @@ def validate_form_schema(raw: Any) -> List[str]:
     else:
         return ["form_schema must be a field list or an object with a 'fields' list"]
 
+    if isinstance(raw, dict) and "description" in raw and not isinstance(raw["description"], str):
+        errors.append("form_schema 'description' must be a string")
+
     seen: set[str] = set()
     for idx, field in enumerate(fields):
         tag = f"field[{idx}]"
@@ -89,6 +92,10 @@ def validate_form_schema(raw: Any) -> List[str]:
         for key in ("enable_validation", "real_time_validation", "field_visibility"):
             if key in field and not isinstance(field[key], bool):
                 errors.append(f"{tag} '{fid}': '{key}' must be a boolean")
+
+        for key in ("part", "description"):
+            if key in field and not isinstance(field[key], str):
+                errors.append(f"{tag} '{fid}': '{key}' must be a string")
 
         if "regex_validation" in field:
             try:

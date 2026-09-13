@@ -1,4 +1,5 @@
 {
+  "description": "Convert a folder of image frames into a video.",
   "fields": [
     {
       "field_id": "source_mode",
@@ -16,22 +17,27 @@
     {
       "field_id": "source_folder",
       "type": "file",
+      "part": "Input & Output",
       "label_name": "Source Folder",
       "mode": "folder",
       "placeholder": "Folder containing your image frames",
-      "required": true
+      "required": true,
+      "description": "Frames should be named sequentially (e.g. frame_0001.png) for smooth playback."
     },
     {
       "field_id": "output_folder",
       "type": "file",
+      "part": "Input & Output",
       "label_name": "Output Folder",
       "mode": "folder",
       "placeholder": "Folder where the converted video will be saved",
-      "required": true
+      "required": true,
+      "description": "The converted video is written into this folder."
     },
     {
       "field_id": "output_type",
       "type": "dropdown",
+      "part": "Video",
       "label_name": "Output Type",
       "default_input": "mp4_h264",
       "pre_defined_dropdown": [
@@ -64,16 +70,19 @@
     {
       "field_id": "fps",
       "type": "number",
+      "part": "Video",
       "label_name": "Frames Per Second (FPS)",
       "default_input": 30,
       "min": 1,
       "allow_decimal": true,
       "step": 0.001,
-      "tooltip": "Manual value, or pick a preset (integer / broadcast & decimal)."
+      "tooltip": "Manual value, or pick a preset (integer / broadcast & decimal).",
+      "description": "Standard presets cover 12-60 fps; decimals allow broadcast and slow-motion rates."
     },
     {
       "field_id": "quality_mode",
       "type": "dropdown",
+      "part": "Encoding",
       "label_name": "Quality Mode",
       "default_input": "CRF",
       "pre_defined_dropdown": [
@@ -107,6 +116,7 @@
     {
       "field_id": "crf",
       "type": "number",
+      "part": "Encoding",
       "label_name": "CRF Quality (Lower = Better)",
       "default_input": 18,
       "min": 0,
@@ -134,6 +144,7 @@
     {
       "field_id": "bitrate",
       "type": "number",
+      "part": "Encoding",
       "label_name": "Bitrate (kbps)",
       "default_input": 8000,
       "min": 1,
@@ -150,6 +161,7 @@
     {
       "field_id": "threads",
       "type": "dropdown",
+      "part": "Encoding",
       "label_name": "CPU Cores",
       "default_input": "1",
       "pre_defined_dropdown": [
@@ -409,11 +421,13 @@
           "64",
           "64"
         ]
-      ]
+      ],
+      "description": "Number of CPU cores FFmpeg may use (1-64)."
     },
     {
       "field_id": "transparent",
       "type": "checkbox",
+      "part": "Encoding",
       "label_name": "Transparency",
       "default_input": false,
       "show_if": {
@@ -429,6 +443,7 @@
     {
       "field_id": "background",
       "type": "dropdown",
+      "part": "Encoding",
       "label_name": "Background",
       "default_input": "black",
       "pre_defined_dropdown": [
@@ -466,6 +481,7 @@
     {
       "field_id": "background_color",
       "type": "color",
+      "part": "Encoding",
       "label_name": "Custom Color",
       "default_input": "#000000",
       "show_if": {
@@ -476,6 +492,7 @@
     {
       "field_id": "gif_color_limit",
       "type": "dropdown",
+      "part": "Encoding",
       "label_name": "Colors",
       "default_input": "256",
       "pre_defined_dropdown": [
