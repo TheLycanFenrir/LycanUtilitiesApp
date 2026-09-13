@@ -1,0 +1,30 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+html[data-theme="dark"] body {
+  background:
+    url("/assets/ui/bg_background.jpg") center / cover no-repeat fixed,
+    linear-gradient(180deg, #2b2b2b 0%, #121212 100%) fixed;
+  background-color: #0f0f0f;
+}
+
+html[data-theme="light"] body {
+  background: linear-gradient(180deg, #eef0f4 0%, #d5dae6 100%) fixed;
+  background-color: #eef0f4;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 6px; }

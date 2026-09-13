@@ -1,0 +1,5 @@
+{
+    "frames_to_video": true,
+    "video_audio_merger": true,
+    "image_splitter": true
+}

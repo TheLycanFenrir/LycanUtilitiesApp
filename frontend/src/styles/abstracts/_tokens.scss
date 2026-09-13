@@ -1,0 +1,44 @@
+// Global design tokens: fonts, radii, shadows, motion and semantic colors.
+// Emitted once on :root as CSS custom properties; themes live in _themes.scss.
+
+$font-ui: "Product Sans", "Segoe UI", system-ui, sans-serif;
+$font-brand: "Trade Winds", "Segoe UI", system-ui, sans-serif;
+
+$radius: 12px;
+$radius-sm: 8px;
+$shadow: 0 10px 30px rgba(0, 0, 0, .35);
+$shadow-sm: 0 3px 12px rgba(0, 0, 0, .22);
+$transition: .16s ease;
+$statusbar-h: 30px;
+
+$semantic-colors: (
+  "good": #3ddc84,
+  "warn": #ffb300,
+  "bad": #ff5c5c,
+  "info": #58a6ff,
+  "orange": #ff9d45,
+  "favorite": #ffd700,
+);
+
+$logo-cyan: #00ffff;
+$logo-cyan-dim: #008b8b;
+$favorite-ink: #1a1a1a;
+$card-border: #2a2a2a;
+$card-accent: #3b82f6;
+$pill-hover-bg: #3d3d3d;
+$pill-active-bg: #ffffff;
+$star-idle: #8b93a3;
+
+:root {
+  --font-ui: #{$font-ui};
+  --font-brand: #{$font-brand};
+  --radius: #{$radius};
+  --radius-sm: #{$radius-sm};
+  --shadow: #{$shadow};
+  --shadow-sm: #{$shadow-sm};
+  --transition: #{$transition};
+  --statusbar-h: #{$statusbar-h};
+  @each $name, $value in $semantic-colors {
+    --#{$name}: #{$value};
+  }
+}

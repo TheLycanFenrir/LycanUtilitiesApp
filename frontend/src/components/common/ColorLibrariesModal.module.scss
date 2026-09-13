@@ -1,0 +1,398 @@
+// ---------------- nested overlay (above picker) ----------------
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 7, 12, .45);
+  backdrop-filter: blur(2px);
+}
+
+.lib {
+  display: flex;
+  flex-direction: column;
+  width: min(800px, calc(100vw - 40px));
+  height: min(620px, calc(100vh - 40px));
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+// ---------------- header ----------------
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+
+.bookBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.bookLabel {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.bookSelect {
+  flex: 1;
+  max-width: 340px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.bookSelect:focus { outline: none; border-color: var(--accent); }
+.bookSelect option:disabled { color: var(--text-faint); }
+.bookSelect option:checked { color: var(--text); }
+
+// ---------------- tri-pane main area ----------------
+
+.panes {
+  display: grid;
+  grid-template-columns: 1fr 40px 232px;
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+// ---------------- left: virtualized color list ----------------
+
+.listCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+
+.viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.viewport::-webkit-scrollbar { width: 6px; }
+.viewport::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-faint) 40%, transparent);
+  border-radius: 999px;
+}
+.viewport::-webkit-scrollbar-track { background: transparent; }
+
+.row {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 26px;
+}
+
+.rowBtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.rowName {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  white-space: nowrap;
+}
+
+.rowMarker {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--info);
+  text-shadow: 0 0 3px rgba(0, 0, 0, .8);
+  pointer-events: none;
+}
+
+.rowMarkerL { left: 4px; }
+.rowMarkerR { right: 4px; }
+
+.rowActive {
+  box-shadow:
+    inset 0 0 0 2px var(--info),
+    inset 0 0 0 3px rgba(255, 255, 255, .28);
+}
+
+// ---------------- center: vertical spectrum scrubber ----------------
+
+.spectCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 6px;
+  border-right: 1px solid var(--border);
+  min-width: 0;
+}
+
+.spectArrow {
+  flex: none;
+  width: 28px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.spectArrow:hover { color: var(--accent); border-color: var(--accent); }
+
+.spectTrack {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--panel-2);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.spectCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.spectThumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 14px;
+  transform: translateY(-50%);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .35);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.spectThumb::before,
+.spectThumb::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+}
+
+.spectThumb::before {
+  left: -1px;
+  border-right: 6px solid var(--accent);
+}
+
+.spectThumb::after {
+  right: -1px;
+  border-left: 6px solid var(--accent);
+}
+
+// ---------------- right: preview / readout / search / actions ----------------
+
+.infoCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.previewCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.previewSwatch {
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.previewCaption {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.gamutBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 9%, var(--panel-2));
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bad);
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+}
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.readoutRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.readoutKey {
+  color: var(--text-faint);
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+
+.readoutVal {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.searchLabel {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.searchInput {
+  width: 100%;
+  margin-top: 5px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.searchInput:focus { outline: none; border-color: var(--accent); }
+
+.noMatch {
+  font-size: 11px;
+  color: var(--bad);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.actionRow {
+  display: flex;
+  gap: 8px;
+}
+
+.actionPrimary { flex: 1; }
+
+.pickerHint {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+// ---------------- compact screens ----------------
+
+@media (max-width: 760px) {
+  .panes {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .listCol {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    height: 40%;
+  }
+
+  .spectCol {
+    display: none;
+  }
+}

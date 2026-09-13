@@ -1,0 +1,152 @@
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.panel-title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.piesense { opacity: .75; }
+.panel-title small { margin-left: auto; font-weight: 400; text-transform: none; color: var(--text-faint); letter-spacing: 0; }
+
+// ---------------- form fields ----------------
+
+.field { display: grid; grid-template-columns: 220px 1fr auto; gap: 12px; align-items: center; margin-bottom: 12px; }
+.field > label { font-size: 13.5px; color: var(--text); font-weight: 600; }
+.field > .field-note { grid-column: 2 / -1; font-size: 12px; color: var(--text-faint); margin-top: -6px; }
+.field.cols-2 { grid-template-columns: 1fr 1fr; }
+.field.cols-2 > label { grid-column: 1 / -1; }
+
+input[type="text"], input[type="number"], select, textarea {
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 11px;
+  width: 100%;
+  transition: var(--transition);
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+select { cursor: pointer; }
+input:disabled, select:disabled { opacity: .45; cursor: not-allowed; }
+input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+input[type="range"] { accent-color: var(--accent); }
+
+// ---------------- buttons ----------------
+
+.btn {
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--text-faint); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+.btn.accent:hover { filter: brightness(1.07); }
+.btn.ghost { background: transparent; }
+.btn.danger {
+  border-color: color-mix(in srgb, var(--bad) 55%, transparent);
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+  color: var(--bad);
+}
+.btn.danger:hover {
+  border-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 22%, transparent);
+  color: var(--bad);
+}
+.btn.secondary {
+  border-color: color-mix(in srgb, var(--info) 55%, transparent);
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+}
+.btn.secondary:hover {
+  border-color: var(--info);
+  background: color-mix(in srgb, var(--info) 22%, transparent);
+  color: var(--info);
+}
+.btn.small {
+  padding: 5px 12px;
+  font-size: 12.5px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn.small .svg-icon { width: 14px; height: 14px; }
+
+.inline-actions { display: flex; gap: 8px; align-items: center; }
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  position: sticky;
+  bottom: calc(var(--statusbar-h) + 12px);
+  z-index: 5;
+  box-shadow: var(--shadow);
+}
+.form-actions .grow { flex: 1; }
+.preset-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.preset-bar select { width: auto; min-width: 200px; }
+
+.preset-name { font-size: 12px; color: var(--text-faint); }
+
+// ---------------- misc ----------------
+
+.hidden { display: none !important; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.tip { font-size: 12px; color: var(--text-faint); }
+.mono { font-family: Consolas, "Cascadia Mono", monospace; }
+
+.template-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
+
+.coming-soon {
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+  text-align: center;
+}
+.coming-soon .panel { max-width: 460px; padding: 40px; }
+.coming-soon-icon { font-size: 52px; }
+.coming-soon h2 { margin: 14px 0 8px; }
+.coming-soon p { color: var(--text-dim); margin: 0 0 4px; }

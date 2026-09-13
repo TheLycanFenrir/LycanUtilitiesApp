@@ -1,0 +1,46 @@
+@use "../abstracts/tokens" as *;
+
+// 4-second cyan glowing stroke on the logo text.
+// Smooth 2s transition to dark cyan (#008b8b), then 2s back to
+// light cyan (#00ffff); no colour snaps. Applied to the topbar
+// brand, the dashboard hero banner title and the About title.
+@keyframes logoCyanStroke {
+  0%, 100% {
+    -webkit-text-stroke-color: #{$logo-cyan};
+    text-shadow:
+      0 0 6px rgba(0, 255, 255, .5),
+      0 0 16px rgba(0, 255, 255, .3);
+  }
+  50% {
+    -webkit-text-stroke-color: #{$logo-cyan-dim};
+    text-shadow:
+      0 0 4px rgba(0, 139, 139, .4),
+      0 0 12px rgba(0, 139, 139, .2);
+  }
+}
+
+// Pulsing cyan frame around the desktop window border.
+@keyframes frameCyanPulse {
+  0%, 100% {
+    border-color: #{$logo-cyan};
+    box-shadow: 0 0 16px rgba(0, 255, 255, .45), inset 0 0 24px rgba(0, 255, 255, .08);
+  }
+  50% {
+    border-color: #{$logo-cyan-dim};
+    box-shadow: 0 0 12px rgba(0, 139, 139, .28), inset 0 0 20px rgba(0, 139, 139, .05);
+  }
+}
+
+@keyframes popup-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+}

@@ -1,0 +1,45 @@
+// Theme token maps. Each entry becomes a CSS custom property on
+// html[data-theme="<name>"] so the app can hot-swap variables.
+
+$themes: (
+  dark: (
+    "bg": #0e1016,
+    "bg-2": #121520,
+    "panel": #191d28,
+    "panel-2": #212633,
+    "panel-3": #272d3c,
+    "border": #2b3242,
+    "text": #e8eaf0,
+    "text-dim": #9aa3b5,
+    "text-faint": #6b7488,
+    "accent": #ffb300,
+    "accent-soft": rgba(255, 179, 0, .14),
+    "accent-ink": #151109,
+    "hero-glow": rgba(255, 179, 0, .18),
+    "scrollbar": #343c4e,
+  ),
+  light: (
+    "bg": #eef0f4,
+    "bg-2": #f6f7fa,
+    "panel": #ffffff,
+    "panel-2": #f5f6f9,
+    "panel-3": #eceef3,
+    "border": #dde1ea,
+    "text": #1d2030,
+    "text-dim": #58617a,
+    "text-faint": #8a92a8,
+    "accent": #b8860b,
+    "accent-soft": rgba(184, 134, 11, .13),
+    "accent-ink": #fff,
+    "hero-glow": rgba(184, 134, 11, .14),
+    "scrollbar": #c3c9d6,
+  ),
+);
+
+@each $name, $tokens in $themes {
+  html[data-theme="#{$name}"] {
+    @each $key, $value in $tokens {
+      --#{$key}: #{$value};
+    }
+  }
+}

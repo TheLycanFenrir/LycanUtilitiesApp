@@ -1,0 +1,58 @@
+# ==============================================================================
+# LycanTools — Git Ignore
+# ==============================================================================
+
+# --- Python build & cache artifacts ------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.dll
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+
+# --- Compiled / temporary files ----------------------------------------------
+*.log
+ffmpeg2pass-*.log
+~*.tmp
+~palette.png
+
+# --- Virtual environments ----------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.venv.bak/
+
+# --- Local backups & version drafts ------------------------------------------
+.backup/
+.backupv1.2/
+.backup*/
+*.backup
+*.bak
+*.orig
+*~*
+
+# --- IDE / editor settings ---------------------------------------------------
+.vscode/
+.idea/
+*.iml
+.vs/
+*.swp
+*.swo
+
+# --- OS auto-generated files -------------------------------------------------
+.DS_Store
+.DS_Store?
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# --- Packaging / distribution ------------------------------------------------
+*.whl
+*.tar.gz
+MANIFEST

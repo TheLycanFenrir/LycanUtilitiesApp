@@ -1,0 +1,18 @@
+// Lycan Utilities - SCSS entry point
+// Order matters (mirrors legacy cascade: variables -> themes -> base UI -> dashboard).
+// Layers: abstracts (tokens) -> base (fonts/keyframes/reset) -> themes ->
+// layout -> components -> pages.
+@use "./base/fonts";
+@use "./abstracts/tokens";
+@use "./themes/themes";
+@use "./base/keyframes";
+@use "./base/base";
+@use "./layout/layout";
+@use "./components/chrome";
+@use "./components/components";
+@use "./components/fps-dropdown";
+@use "./components/console";
+@use "./components/overlays";
+@use "./components/color-picker";
+@use "./pages/dashboard";
+@use "./components/easter";

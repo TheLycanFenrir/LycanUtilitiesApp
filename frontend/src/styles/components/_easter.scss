@@ -1,0 +1,62 @@
+@use "../abstracts/tokens" as *;
+
+// ---------------- easter egg: wolf peek ----------------
+// A tiny fixed wolf-head button that, while held, hides the whole app shell
+// so only the themed wallpaper backdrop remains visible. State lives in the
+// shell (Shell.jsx) and toggles static classes - no layout reflow, just a
+// clean opacity fade on the affected layers.
+
+.easter-egg-btn {
+  position: fixed;
+  left: 16px;
+  bottom: calc(var(--statusbar-h) + 14px);
+  z-index: 100;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel-2) 55%, transparent);
+  color: var(--text-faint);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: var(--transition);
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent-soft), 0 0 16px var(--accent-soft);
+    transform: translateY(-2px) rotate(-4deg);
+  }
+
+  &:active,
+  &.peeking {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--panel-2) 85%, transparent);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-soft);
+    transform: rotate(-6deg) scale(0.96);
+  }
+
+  svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    pointer-events: none;
+  }
+}
+
+// Applied to chrome + content layers while peeking. visibility hides from the
+// a11y tree and pointer events; opacity provides the fade. Layout boxes are
+// preserved, so nothing reflows or snaps when the wolf is released.
+.content-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease;
+}

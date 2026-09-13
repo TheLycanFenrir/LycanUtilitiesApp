@@ -1,0 +1,73 @@
+// ---------------- framerate dropdown ----------------
+// Predefined quick-pick beside the manual number input. The arrow is a
+// pure-CSS rotated border built on the design tokens, so it follows
+// Dark/Light mode automatically. Wrapped in .fps-wrap so the arrow can
+// sit over the field.
+
+.fps-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+
+  > input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.fps-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  flex: none;
+
+  .fps-dropdown {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    padding-right: 34px;
+    background-image: none;
+    cursor: pointer;
+  }
+
+  .fps-dropdown option {
+    color: var(--text);
+    background: var(--panel-2);
+  }
+
+  .fps-dropdown optgroup {
+    color: var(--text-dim);
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: .4px;
+  }
+}
+
+.fps-field .fps-wrap {
+  width: auto;
+
+  .fps-dropdown {
+    width: auto;
+    min-width: 118px;
+  }
+}
+
+.fps-wrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-faint);
+  border-bottom: 2px solid var(--text-faint);
+  transform: translateY(-60%) rotate(45deg);
+  pointer-events: none;
+  transition: border-color var(--transition), transform var(--transition);
+}
+
+.fps-wrap:focus-within::after {
+  border-color: var(--accent);
+  transform: translateY(-40%) rotate(225deg);
+}

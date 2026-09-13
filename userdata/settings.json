@@ -1,0 +1,80 @@
+{
+    "frames_to_video": {
+        "source_mode": "folder",
+        "source_folder": "C:\\tmp\\Temp",
+        "output_folder": "D:\\! Code Lab Test Exportion",
+        "output_file": "D:\\! Code Lab Test Exportion\\Temp.mp4",
+        "output_type": "mp4_h264",
+        "fps": "30",
+        "quality_mode": "CRF",
+        "crf": "18",
+        "bitrate": "8000",
+        "threads": "1",
+        "transparent": false,
+        "background": "black",
+        "background_color": [
+            0,
+            0,
+            0
+        ],
+        "background_custom": "#000000",
+        "gif_color_limit": "256",
+        "open_explorer_after_conversion": false
+    },
+    "texture_mipmap": {
+        "source": "",
+        "output": "",
+        "source_mode": "single",
+        "normal_map": false,
+        "npot_mode": "none",
+        "resample_filter": "lanczos",
+        "export_dds": false,
+        "retain_alpha": true,
+        "image_format": "png",
+        "quality": "95",
+        "png_compress_level": "6",
+        "tga_compression": "none",
+        "tiff_compression": "none",
+        "naming_template": "{texture_name}_mip{level}.{ext}",
+        "open_explorer_after_conversion": false
+    },
+    "image_splitter": {
+        "source": "",
+        "output": "",
+        "source_mode": "single",
+        "mode": "grid",
+        "rows": "1",
+        "columns": "1",
+        "tile_width": "512",
+        "tile_height": "512",
+        "alpha_threshold": "0",
+        "resolution_mode": "allow_variation",
+        "padding_mode": "edge",
+        "bleed_radius": "0",
+        "image_format": "png",
+        "quality": "95",
+        "png_compress_level": "6",
+        "tga_compression": "none",
+        "tiff_compression": "none",
+        "discard_blank_tiles": false,
+        "naming_template": "{basename}_r{row}_c{col}_w{width}_h{height}.{ext}",
+        "open_explorer_after_conversion": false
+    },
+    "app_settings": {
+        "version": 1,
+        "ffmpeg": {
+            "path": "C:\\ffmpeg\\bin\\ffmpeg.exe",
+            "use_system_path": false
+        },
+        "color_picking": {
+            "max_recents": 30,
+            "default_format": "rgb"
+        },
+        "general": {
+            "theme": "",
+            "allow_internet": false,
+            "check_updates_automatically": false
+        }
+    },
+    "app_theme": "dark"
+}

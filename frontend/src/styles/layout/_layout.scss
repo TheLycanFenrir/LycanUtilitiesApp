@@ -1,0 +1,161 @@
+// App zoom targets ONLY #app-layout (CSS 'zoom'), keeping the header,
+// status bar and any UI overlay panels at native 1:1.
+#root {
+  height: 100%;
+}
+#app-layout {
+  height: 100%;
+}
+
+.view {
+  height: 100%;
+  padding-top: 56px;
+  padding-bottom: 30px;
+  overflow-y: auto;
+}
+
+.page {
+  padding: 22px 30px 60px;
+  animation: page-in .18s ease;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+// ---------------- status bar (footer) ----------------
+
+.statusbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
+  backdrop-filter: blur(8px);
+}
+.statusbar-inner {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.status-chip .svg-icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--text-faint);
+}
+.status-chip-label {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.status-chip-value {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.status-chip-cpu {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-dim);
+}
+.status-chip-sep {
+  flex: none;
+  width: 1px;
+  height: 12px;
+  background: var(--border);
+  opacity: .8;
+}
+.status-chip-grow { flex: 1; }
+
+.status-meter {
+  flex: none;
+  width: 42px;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  overflow: hidden;
+}
+.status-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width var(--transition);
+}
+.status-meter-fill.orange { background: var(--warn); }
+.status-meter-fill.red { background: var(--bad); }
+
+// ---------------- tool page header ----------------
+
+.tool-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.back-btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+.back-btn svg { width: 18px; height: 18px; }
+.back-label { font-weight: 700; font-size: 13.5px; letter-spacing: .2px; }
+.tool-head-title {
+  margin: 0;
+  font-size: 23px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tool-head-sub { color: var(--text-dim); margin: 2px 0 0; font-size: 13px; }
+
+.tool-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.tool-layout .tool-form,
+.tool-layout .console-host { min-width: 0; }
+@media (min-width: 1021px) {
+  .tool-layout {
+    grid-template-columns: minmax(0, 1fr) 400px;
+  }
+}

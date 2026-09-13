@@ -1,0 +1,823 @@
+// ---------------- modal shell ----------------
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  width: min(1000px, calc(100vw - 40px));
+  height: auto;
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+}
+
+.pickerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex: none;
+}
+
+.pickerTitle {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+
+// ---------------- stage: sticky canvas + scrollable controls ----------------
+
+.stage {
+  --box: clamp(220px, calc(100vh - 190px), 460px);
+  display: grid;
+  grid-template-columns: var(--box) 1fr;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+// ---------------- 2D square color area (sticky, never scrolls) ----------------
+
+.boxCol {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  min-width: 0;
+  width: var(--box);
+}
+
+.boxFrame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--panel-3);
+  user-select: none;
+  touch-action: none;
+}
+
+.box {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.cursor {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 0 4px rgba(0, 0, 0, .4);
+  pointer-events: none;
+}
+
+.boxLegend {
+  margin-top: 6px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.boxLegend strong {
+  color: var(--text-dim);
+  font-weight: 700;
+}
+
+// ---------------- right side (independently scrollable) ----------------
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  align-self: stretch;
+}
+
+// mode tabs
+
+.modeTabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.modeTab {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 0;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.modeTab:hover {
+  color: var(--text);
+}
+
+.modeTabActive {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: transparent;
+}
+
+// profile / gamut toolbar
+
+.profileBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.profileSelect {
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 5px 6px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.profileSelect:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.profileSelect:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.gamutWarn {
+  font-size: 11px;
+  color: var(--bad);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bad);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+}
+
+// channels
+
+.channels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.channel {
+  display: grid;
+  grid-template-columns: 18px 14px 1fr 60px;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.channel:hover {
+  background: var(--panel-2);
+}
+
+.channelActive {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  padding: 2px 4px;        // compensate border taking 1px each side
+}
+
+.channel:not(.channelActive) {
+  border: 1px solid transparent;
+  padding: 2px 4px;
+}
+
+.channelRadioLbl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  grid-column: 1 / 3;
+}
+
+.channelRadio {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  border-radius: 50%;
+  border: 1px solid var(--text-faint);
+  background: var(--panel-2);
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition);
+}
+
+.channelRadio:checked {
+  border-color: var(--accent);
+}
+
+.channelRadio:checked::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.channelKey {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.channelActive .channelKey {
+  color: var(--accent);
+}
+
+.channelRange {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border: none;
+  outline: none;
+  border-radius: 999px;
+  cursor: ew-resize;
+  background: var(--panel-3);
+  transition: background .15s;
+}
+
+.channelRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, .45);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+  cursor: ew-resize;
+}
+
+.channelActive .channelRange {
+  height: 12px;
+}
+
+.channelActive .channelRange::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+}
+
+.channelNum {
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 11.5px;
+  padding: 4px 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  width: 100%;
+  min-width: 0;
+  text-align: right;
+}
+
+.channelNum:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+// hex row
+
+.hexRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.hex {
+  flex: 1;
+  min-width: 0;
+}
+
+.hex > span {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.hex input {
+  width: 100%;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 12.5px;
+  text-transform: uppercase;
+  padding: 6px 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.hex input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.preview {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+.previewCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 46px;
+}
+
+.swatchOld,
+.swatchNew {
+  width: 46px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.swatchOld {
+  opacity: .65;
+}
+
+.caption {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+// ---------------- sections ----------------
+
+.section {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.sectionLabel {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.sectionMeta {
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+// ---------------- recent row ----------------
+
+.recentRow {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+// ---------------- micro swatch slot ----------------
+
+.slot {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--panel-3);
+  transition: var(--transition);
+  flex: none;
+}
+
+.slot:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  border-color: var(--accent);
+  position: relative;
+  z-index: 1;
+}
+
+// ---------------- unified palette toolbar ----------------
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: nowrap;
+}
+
+.paletteSelect {
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  cursor: pointer;
+  max-width: 220px;
+  min-width: 120px;
+}
+
+.paletteSelect:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.iconBtn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  transition: var(--transition);
+  flex: none;
+}
+
+.iconBtn:hover {
+  background: var(--panel-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.exportSelect {
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 6px;
+  cursor: pointer;
+  flex: none;
+  width: 76px;
+  min-width: 0;
+}
+
+.exportSelect:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.toolBtn {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+.accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+
+// editor inline row
+
+.editorRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.editorInput {
+  flex: 1;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+}
+
+.editorInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.error {
+  color: var(--bad);
+  font-size: 11px;
+  margin: 0 0 6px;
+}
+
+// ---------------- swatch grid + add tile ----------------
+
+.swatchGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px !important;
+  max-height: 120px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+
+.addTile {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--text-faint);
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 14px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  transition: var(--transition);
+  flex: none;
+}
+
+.addTile:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.addTile:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.emptyCell {
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+
+.slotWrap {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+
+.slotX {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: var(--transition);
+  z-index: 1;
+}
+
+.slotWrap:hover .slotX {
+  opacity: 1;
+}
+
+.slotX:hover {
+  filter: brightness(1.1);
+}
+
+// ---------------- thin scrollbars ----------------
+// All scrollable swatch/palette strips get thin, unobtrusive scrollbars.
+
+.recentRow,
+.swatchGrid,
+.toolbar,
+.profileBar,
+.side {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+.recentRow::-webkit-scrollbar,
+.swatchGrid::-webkit-scrollbar,
+.toolbar::-webkit-scrollbar,
+.profileBar::-webkit-scrollbar,
+.side::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.recentRow::-webkit-scrollbar-thumb,
+.swatchGrid::-webkit-scrollbar-thumb,
+.toolbar::-webkit-scrollbar-thumb,
+.profileBar::-webkit-scrollbar-thumb,
+.side::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 999px;
+}
+
+.recentRow::-webkit-scrollbar-track,
+.swatchGrid::-webkit-scrollbar-track,
+.toolbar::-webkit-scrollbar-track,
+.profileBar::-webkit-scrollbar-track,
+.side::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+// ---------------- palette section: roomier color slots ----------------
+
+.swatchGrid .slot,
+.swatchGrid .slotWrap,
+.swatchGrid .emptyCell,
+.swatchGrid .addTile {
+  width: 26px;
+  height: 26px;
+}
+
+.swatchGrid {
+  gap: 6px;
+  max-height: 152px;
+}
+
+.swatchGrid .slotX {
+  width: 26px;
+  height: 26px;
+  top: -6px;
+  right: -6px;
+  font-size: 10px;
+}
+
+.swatchGrid .slot:hover {
+  transform: scale(1.12);
+}
+
+// ---------------- actions bar ----------------
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  flex: none;
+}
+
+.actions :global(.btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 10px;
+  min-height: 26px;
+  border-radius: var(--radius-sm);
+}
+
+.actions :global(.btn) svg {
+  width: 12px;
+  height: 12px;
+}
+
+.pickerHint {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+.pickHint {
+  margin-top: 10px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+// Full-screen input shield rendered while a color pick is in progress: it
+// swallows every mouse/touch event so clicks and drags never reach the UI
+// underneath, and is removed automatically when the pick resolves.
+
+.pickBlock {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  cursor: crosshair;
+  user-select: none;
+  touch-action: none;
+}
+
+.grow {
+  flex: 1;
+}
+
+// ---------------- responsive ----------------
+// <900px: only the 2D color box shrinks a little.
+// <750px: color box spans the full modal width, single column, and the bottom
+// action row (Color pick / Color Libraries / Cancel / Apply) is docked to the
+// bottom of the visible modal (sticky within the scrolling picker), so it is
+// always reachable and never scrolled out of view.
+
+@media (max-width: 900px) {
+  .stage {
+    --box: clamp(180px, calc(100vh - 220px), 380px);
+  }
+}
+
+@media (max-width: 750px) {
+  .picker {
+    height: auto;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    padding-bottom: 0;
+  }
+
+  .stage {
+    grid-template-columns: 1fr;
+    overflow: visible;
+    --box: 100%;
+    gap: 12px;
+  }
+
+  .boxCol {
+    position: static;
+    width: 100%;
+    max-width: none;
+  }
+
+  .side {
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .actions {
+    position: static !important;
+    bottom: 0;
+    z-index: 2;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 10px 0 2px;
+    background: var(--panel);
+  }
+
+  .recentRow {
+    overflow-x: auto;
+  }
+}

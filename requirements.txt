@@ -1,0 +1,5 @@
+pywebview==6.2.1
+pillow==12.3.0
+numpy==2.5.3
+psutil==7.2.2
+imageio==2.37.4
