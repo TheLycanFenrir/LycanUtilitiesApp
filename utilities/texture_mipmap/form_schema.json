@@ -1,8 +1,10 @@
 {
+  "description": "Generate layered mipmaps from a texture image (or a folder of textures).",
   "fields": [
     {
       "field_id": "source_mode",
       "type": "dropdown",
+      "part": "Input & Output",
       "label_name": "Source Type",
       "default_input": "single",
       "pre_defined_dropdown": [
@@ -19,6 +21,7 @@
     {
       "field_id": "source",
       "type": "file",
+      "part": "Input & Output",
       "label_name": "Source",
       "mode": {
         "parts": [
@@ -32,11 +35,13 @@
       },
       "file_types": "Images (*.png;*.jpg;*.jpeg;*.webp;*.tga;*.tiff;*.bmp)",
       "required": true,
-      "placeholder": "The texture image file"
+      "placeholder": "The texture image file",
+      "description": "The texture to process, or a folder when Source Type is 'Folder (bulk)'."
     },
     {
       "field_id": "output",
       "type": "file",
+      "part": "Input & Output",
       "label_name": "Output Folder",
       "mode": "folder",
       "placeholder": "Where the mip levels will be saved",
@@ -45,6 +50,7 @@
     {
       "field_id": "normal_map",
       "type": "checkbox",
+      "part": "Mip Generation",
       "label_name": "Normal Map",
       "default_input": false,
       "tooltip": "Enables normal-map compatible resampling that avoids flipping signed channels."
@@ -52,6 +58,7 @@
     {
       "field_id": "npot_mode",
       "type": "dropdown",
+      "part": "Mip Generation",
       "label_name": "Non-Power-Of-Two Handling",
       "default_input": "none",
       "pre_defined_dropdown": [
@@ -72,6 +79,7 @@
     {
       "field_id": "resample_filter",
       "type": "dropdown",
+      "part": "Mip Generation",
       "label_name": "Resample Filter",
       "default_input": "lanczos",
       "pre_defined_dropdown": [
@@ -96,6 +104,7 @@
     {
       "field_id": "export_dds",
       "type": "checkbox",
+      "part": "Mip Generation",
       "label_name": "Export DDS Container",
       "default_input": false,
       "tooltip": "Attempts a .dds container alongside the image files when imageio is available."
@@ -103,6 +112,7 @@
     {
       "field_id": "image_format",
       "type": "dropdown",
+      "part": "Output Format",
       "label_name": "Image Format",
       "default_input": "png",
       "pre_defined_dropdown": [
@@ -135,6 +145,7 @@
     {
       "field_id": "quality",
       "type": "number",
+      "part": "Output Format",
       "label_name": "Quality (1-100)",
       "default_input": 95,
       "min": 1,
@@ -168,6 +179,7 @@
     {
       "field_id": "png_compress_level",
       "type": "number",
+      "part": "Output Format",
       "label_name": "PNG Compression Level (0-9)",
       "default_input": 6,
       "min": 0,
@@ -181,6 +193,7 @@
     {
       "field_id": "tga_compression",
       "type": "dropdown",
+      "part": "Output Format",
       "label_name": "TGA Compression",
       "default_input": "none",
       "pre_defined_dropdown": [
@@ -201,6 +214,7 @@
     {
       "field_id": "tiff_compression",
       "type": "dropdown",
+      "part": "Output Format",
       "label_name": "TIFF Compression",
       "default_input": "none",
       "pre_defined_dropdown": [
@@ -229,15 +243,18 @@
     {
       "field_id": "retain_alpha",
       "type": "checkbox",
+      "part": "Output Format",
       "label_name": "Retain Alpha Channel",
       "default_input": true
     },
     {
       "field_id": "naming_template",
       "type": "text",
+      "part": "Output Format",
       "label_name": "Naming Template",
       "default_input": "{texture_name}_mip{level}.{ext}",
-      "tooltip": "Tokens: {texture_name} {level} {ext}"
+      "tooltip": "Tokens: {texture_name} {level} {ext}",
+      "description": "Example: {texture_name}_mip{level}.{ext} renders as tex_mip0.png"
     }
   ]
 }
