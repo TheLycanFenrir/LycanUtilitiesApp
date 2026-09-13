@@ -8,8 +8,10 @@ const listeners = new Set();
 let fields = {}; // fieldId -> { schema, value, status, visible }
 let focusTick = { fieldId: null, n: 0 };
 let moduleId = null;
+let currentSnapshot = { fields, focusTick };
 
 function emit() {
+  currentSnapshot = { fields, focusTick };
   for (const fn of listeners) fn();
 }
 
@@ -19,7 +21,7 @@ export function subscribeForm(fn) {
 }
 
 export function getFormSnapshot() {
-  return { fields, focusTick };
+  return currentSnapshot;
 }
 
 export function getActiveModuleId() {
