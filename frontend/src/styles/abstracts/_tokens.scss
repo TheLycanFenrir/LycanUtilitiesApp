@@ -20,8 +20,12 @@ $semantic-colors: (
   "favorite": #ffd700,
 );
 
-$logo-cyan: #00ffff;
-$logo-cyan-dim: #008b8b;
+$logo-blue: #0088ff;
+$logo-blue-dim: #004b7b;
+$logo-blue-transparent: rgba(0, 136, 255, .45);
+$logo-blue-dim-transparent: rgba(0, 75, 123, .28);
+$logo-blue-high-transparent: rgba(0, 136, 255, .5);
+$logo-blue-dim-high-transparent: rgba(0, 75, 123, .8);
 $favorite-ink: #1a1a1a;
 $card-border: #2a2a2a;
 $card-accent: #3b82f6;

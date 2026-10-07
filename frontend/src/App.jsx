@@ -6,6 +6,7 @@ import Shell from "./components/layout/Shell.jsx";
 import { ToolHeader } from "./tabs/common/components/TabChrome.jsx";
 import HomeDashboard from "./tabs/HomeDashboard.jsx";
 import FormTool from "./tabs/FormTool.jsx";
+import UtilityErrorTab from "./tabs/UtilityErrorTab.jsx";
 
 function ComingSoon({ tool, onBack }) {
   return (
@@ -32,6 +33,8 @@ export default function App() {
   const [focusJobId, setFocusJobId] = useState(null);
   const [queuedEdit, setQueuedEdit] = useState(null);
   const [queueCurrent, setQueueCurrent] = useState(null);
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [storeSearchQuery, setStoreSearchQuery] = useState("");
 
   // Track the currently running queue job so an already-open tool tab can
   // attach to it and keep streaming its Output Log (queue mode).
@@ -110,6 +113,38 @@ export default function App() {
     loadDashboard();
   }, [loadDashboard]);
 
+  useEffect(() => {
+    if (!active) return;
+    const onFocusEscape = (e) => {
+      if (e.key !== "Escape") return;
+      const el = document.activeElement;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "SELECT" ||
+          el.tagName === "TEXTAREA" ||
+          el.isContentEditable)
+      ) {
+        return;
+      }
+      if (
+        document.querySelector(
+          ".modal-overlay, .about-overlay, [role='dialog'], .menu-popup, .worker-popup, .store-popup, .zoom-dropdown-panel",
+        )
+      ) {
+        return;
+      }
+      goHome();
+    };
+    window.addEventListener("keydown", onFocusEscape);
+    return () => window.removeEventListener("keydown", onFocusEscape);
+  }, [active, goHome]);
+
+  const openStore = useCallback((searchQuery = "") => {
+    setStoreSearchQuery(searchQuery);
+    setStoreOpen(true);
+  }, []);
+
   const editQueuedJob = useCallback(async (jobId) => {
     let res;
     try {
@@ -145,10 +180,15 @@ export default function App() {
     [call],
   );
 
-  const ActiveComponent = active && (active.form_schema ? FormTool : null);
+  const ActiveComponent =
+    active && active.has_error
+      ? UtilityErrorTab
+      : active && active.form_schema
+        ? FormTool
+        : null;
 
   return (
-    <Shell call={call} app={app} cpuName={cpuName} goHome={goHome} onFocusTool={openTool} onEditJob={editQueuedJob}>
+    <Shell call={call} app={app} cpuName={cpuName} goHome={goHome} onFocusTool={openTool} onEditJob={editQueuedJob} storeOpen={storeOpen} onStoreOpenChange={setStoreOpen} storeSearchQuery={storeSearchQuery}>
       {!active ? (
         <HomeDashboard tools={tools} app={app} onOpenTool={openTool} onToggleFavorite={toggleFavorite} />
       ) : ActiveComponent ? (
@@ -159,6 +199,7 @@ export default function App() {
           queuedEdit={queuedEdit}
           onQueuedEditDone={queuedEditDone}
           queueRunning={queueCurrent ? { tool: queueCurrent.tool, jobId: queueCurrent.job_id } : null}
+          onOpenStore={openStore}
         />
       ) : (
         <ComingSoon tool={active} onBack={goHome} />

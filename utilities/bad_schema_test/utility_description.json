@@ -1,0 +1,6 @@
+{
+  "title": "Bad Schema Inspection",
+  "description": "Sample utility with an invalid form schema for loading the schema-error inspection tab.",
+  "credits": "Lycan Utilities",
+  "size_estimate": "Small"
+}

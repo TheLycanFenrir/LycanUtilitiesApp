@@ -1,64 +1,62 @@
 {
     "frames_to_video": {
         "source_mode": "folder",
-        "source_folder": "C:\\tmp\\Temp",
-        "output_folder": "D:\\! Code Lab Test Exportion",
-        "output_file": "D:\\! Code Lab Test Exportion\\Temp.mp4",
+        "source_folder": "2",
+        "output_folder": "sdffdsfds\ud83d\udc3a",
         "output_type": "mp4_h264",
-        "fps": "30",
+        "fps": 302.934,
         "quality_mode": "CRF",
-        "crf": "18",
-        "bitrate": "8000",
+        "crf": 61,
+        "bitrate": 8000,
         "threads": "1",
         "transparent": false,
-        "background": "black",
+        "background": "custom",
         "background_color": [
             0,
-            0,
-            0
+            214,
+            222
         ],
-        "background_custom": "#000000",
         "gif_color_limit": "256",
-        "open_explorer_after_conversion": false
+        "open_explorer_after_conversion": true
     },
     "texture_mipmap": {
+        "source_mode": "single",
         "source": "",
         "output": "",
-        "source_mode": "single",
         "normal_map": false,
         "npot_mode": "none",
         "resample_filter": "lanczos",
         "export_dds": false,
-        "retain_alpha": true,
-        "image_format": "png",
-        "quality": "95",
-        "png_compress_level": "6",
+        "image_format": "jpg",
+        "quality": 95,
+        "png_compress_level": 6,
         "tga_compression": "none",
         "tiff_compression": "none",
+        "retain_alpha": true,
         "naming_template": "{texture_name}_mip{level}.{ext}",
         "open_explorer_after_conversion": false
     },
     "image_splitter": {
-        "source": "",
-        "output": "",
         "source_mode": "single",
+        "source": "\ud83d\udc3a\ud83d\udc3a",
+        "output": "",
         "mode": "grid",
-        "rows": "1",
-        "columns": "1",
-        "tile_width": "512",
-        "tile_height": "512",
-        "alpha_threshold": "0",
+        "rows": 7,
+        "columns": 1,
+        "tile_width": 512,
+        "tile_height": 512,
+        "alpha_threshold": 0,
         "resolution_mode": "allow_variation",
         "padding_mode": "edge",
-        "bleed_radius": "0",
+        "bleed_radius": 0,
         "image_format": "png",
-        "quality": "95",
-        "png_compress_level": "6",
+        "quality": 95,
+        "png_compress_level": 6,
         "tga_compression": "none",
         "tiff_compression": "none",
         "discard_blank_tiles": false,
         "naming_template": "{basename}_r{row}_c{col}_w{width}_h{height}.{ext}",
-        "open_explorer_after_conversion": false
+        "open_explorer_after_conversion": true
     },
     "app_settings": {
         "version": 1,
@@ -72,9 +70,61 @@
         },
         "general": {
             "theme": "",
-            "allow_internet": false,
+            "allow_internet": true,
             "check_updates_automatically": false
+        },
+        "python_libraries": {
+            "local_only": true
         }
     },
-    "app_theme": "dark"
+    "app_theme": "dark",
+    "image_watermarker": {
+        "input_image": "",
+        "output_image": "",
+        "watermark_text": "\u00a9 Lycan 2026",
+        "watermark_alpha": 40,
+        "watermark_color": [
+            255,
+            255,
+            255
+        ],
+        "font_size": 0,
+        "watermark_position": "bottom_right",
+        "date_stamp": true,
+        "open_explorer_after_conversion": false
+    },
+    "ui_tester": {
+        "name_input": "Lycan",
+        "sanitized_input": "hello world",
+        "integer_fader": 50,
+        "decimal_input": 0,
+        "choice": "b",
+        "revealed_text": "Surprise!",
+        "meeting_date": "2026-01-01",
+        "accent_color": [
+            51,
+            102,
+            255
+        ],
+        "enable_advanced": false,
+        "advanced_text": "",
+        "advanced_level": 3,
+        "hidden_hint": "You can enable advanced options above.",
+        "source_type": "file",
+        "source_target": "",
+        "output_dir": "",
+        "saved_image": "",
+        "open_explorer_after_conversion": true
+    },
+    "card_test": {
+        "demo_name": "Lycansddsdsdsdsdsdsd",
+        "demo_level": 3,
+        "demo_switch": "on",
+        "demo_extra": "Only visible while the switch is On",
+        "demo_mode": "light",
+        "demo_free_text": "sdfsdsfdfsfdsf",
+        "demo_notes": "",
+        "demo_tail": "",
+        "open_explorer_after_conversion": false
+    }
 }

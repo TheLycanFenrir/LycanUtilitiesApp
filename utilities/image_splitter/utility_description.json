@@ -1,0 +1,8 @@
+{
+  "title": "Image Splitter",
+  "description": "Split large textures into grids, custom tile sizes or alpha components for map and texture workflows.",
+  "python_requirements": ["Pillow", "numpy"],
+  "additional_requirements": [],
+  "credits": "Lycan Utilities",
+  "size_estimate": "~2 MB"
+}

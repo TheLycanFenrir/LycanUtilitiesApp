@@ -1,33 +1,33 @@
 @use "../abstracts/tokens" as *;
 
-// 4-second cyan glowing stroke on the logo text.
-// Smooth 2s transition to dark cyan (#008b8b), then 2s back to
-// light cyan (#00ffff); no colour snaps. Applied to the topbar
+// 4-second blue glowing stroke on the logo text.
+// Smooth 2s transition to dark blue (#004b7b), then 2s back to
+// light blue (#0088ff); no colour snaps. Applied to the topbar
 // brand, the dashboard hero banner title and the About title.
-@keyframes logoCyanStroke {
+@keyframes logoBlueStroke {
   0%, 100% {
-    -webkit-text-stroke-color: #{$logo-cyan};
+    -webkit-text-stroke-color: #{$logo-blue};
     text-shadow:
-      0 0 6px rgba(0, 255, 255, .5),
-      0 0 16px rgba(0, 255, 255, .3);
+      0 0 6px #{$logo-blue-transparent},
+      0 0 16px #{$logo-blue-high-transparent};
   }
   50% {
-    -webkit-text-stroke-color: #{$logo-cyan-dim};
+    -webkit-text-stroke-color: #{$logo-blue-dim};
     text-shadow:
-      0 0 4px rgba(0, 139, 139, .4),
-      0 0 12px rgba(0, 139, 139, .2);
+      0 0 4px #{$logo-blue-dim-high-transparent},
+      0 0 12px #{$logo-blue-dim-transparent};
   }
 }
 
-// Pulsing cyan frame around the desktop window border.
-@keyframes frameCyanPulse {
+// Pulsing blue frame around the desktop window border.
+@keyframes frameBluePulse {
   0%, 100% {
-    border-color: #{$logo-cyan};
-    box-shadow: 0 0 16px rgba(0, 255, 255, .45), inset 0 0 24px rgba(0, 255, 255, .08);
+    border-color: #{$logo-blue};
+    box-shadow: 0 0 16px #{$logo-blue-transparent}, inset 0 0 24px #{$logo-blue-high-transparent};
   }
   50% {
-    border-color: #{$logo-cyan-dim};
-    box-shadow: 0 0 12px rgba(0, 139, 139, .28), inset 0 0 20px rgba(0, 139, 139, .05);
+    border-color: #{$logo-blue-dim};
+    box-shadow: 0 0 12px #{$logo-blue-dim-transparent}, inset 0 0 20px #{$logo-blue-dim-high-transparent};
   }
 }
 

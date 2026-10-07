@@ -68,7 +68,10 @@ function toolIconFile(iconFile) {
   const raw = String(iconFile || "");
   const file = raw.replace(/^utils[\\/]+myutils[\\/]+/, "").replace(/[\\/]+/g, "/");
   if (!file) return "";
-  return file.startsWith(ASSET_BASE) ? file : `${ASSET_BASE}/${file}`;
+  // Generated mirrors live under assets/.cache/icons (synced by the scanner);
+  // hand-referenced files keep the assets/icons base. Anything already under
+  // assets/ is served as-is.
+  return file.startsWith("assets/") ? file : `${ASSET_BASE}/${file}`;
 }
 
 export {

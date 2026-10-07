@@ -17,7 +17,7 @@ const FormStateContext = createContext(null);
  * clobbered by this provider's initialization. Unmount clears the store.
  */
 export function FormStateProvider({ moduleId, fieldsKey, fields, children }) {
-  const snapshot = useSyncExternalStore(subscribeForm, getFormSnapshot);
+  const snapshot = useSyncExternalStore(subscribeForm, getFormSnapshot, getFormSnapshot);
 
   useEffect(() => {
     registerGlobalBridge();

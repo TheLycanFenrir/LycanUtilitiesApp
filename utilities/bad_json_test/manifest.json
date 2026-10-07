@@ -1,0 +1,12 @@
+{
+  "id": "bad_json_test",
+  "title": "Broken JSON (Test)",
+  "description": "Deliberately invalid manifest.json used to exercise the utility load-error tab. Fix or delete this folder in testing.",
+  "version": "1.0.0",
+  "runtime": "runtime.py",
+  "schema": "form_schema.json",
+  "form_engine": "auto",
+  "handlers": {
+    "python": "runtime.py",
+    "lua": "runtime.lua"
+  }

@@ -29,7 +29,7 @@ export default function ToolTabLayout({
             <section className="panel" data-panel-title="Options">
               <h2 className="panel-title">Options</h2>
               <div className="field">
-                <label>Open Explorer After Conversion</label>
+                <label htmlFor="in-open_explorer_after_conversion">Open Explorer After Conversion</label>
                 <div>
                   <input
                     id="in-open_explorer_after_conversion"

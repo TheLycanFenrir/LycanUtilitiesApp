@@ -1,8 +1,10 @@
 import { useRef, useState } from "react";
-import { Icon } from "../components/common/SvgIcon.jsx";
-import { highlight } from "../components/settings/highlight.jsx";
-import useCyanPulse from "../hooks/useCyanPulse.js";
+import { Icon, WolfIcon } from "../components/common/SvgIcon.jsx";
+import { highlightWithEmoji } from "../components/settings/highlight.jsx";
+import EmojiText, { Emoji } from "../components/common/EmojiText.jsx";
+import useBluePulse from "../hooks/useCyanPulse.js";
 import { toolIconFile } from "../utils/paths/paths.js";
+import UtilityCardList from "../components/UtilityCardList/UtilityCardList.jsx";
 
 const PILLS = [
   ["all", "All", "grid"],
@@ -43,37 +45,37 @@ function filterList(list, query) {
   );
 }
 
-function Card({ tool, onOpen, onToggleFavorite, query }) {
+function CardBody({ tool, query, onToggleFavorite }) {
   const [imgOk, setImgOk] = useState(Boolean(tool.icon_file));
   return (
-    <article
-      className="card"
-      data-tooltip={tool.description || undefined}
-      onClick={onOpen}
-    >
+    <>
       <div className="card-icon">
         {tool.icon_file && imgOk ? (
           <img src={toolIconFile(tool.icon_file)} alt="" onError={() => setImgOk(false)} />
+        ) : tool.icon ? (
+          <Emoji emoji={tool.icon} size={30} />
         ) : (
-          <span style={{ fontSize: 30 }}>{tool.icon || "?"}</span>
+          <WolfIcon />
         )}
       </div>
       <div className="card-body">
-        <span className="card-title">{highlight(tool.title, query)}</span>
+        <span className="card-title">{highlightWithEmoji(tool.title, query)}</span>
       </div>
       <button
         type="button"
         className={"card-star" + (tool.favorite ? " on" : "")}
         title="Toggle favorite"
+        aria-label={tool.favorite ? "Remove from favorites" : "Add to favorites"}
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
           onToggleFavorite(tool);
         }}
+        onKeyDown={(e) => e.stopPropagation()}
       >
         <Icon name="star" />
       </button>
-    </article>
+    </>
   );
 }
 
@@ -89,14 +91,14 @@ export default function HomeDashboard({ tools = [], app, onOpenTool, onToggleFav
     }
   };
   const bannerRef = useRef(null);
-  useCyanPulse(bannerRef);
+  useBluePulse(bannerRef);
   const list = sortList(filterList(tools, search), sort);
   return (
     <div className="page">
       <div className="container">
         <div className="banner">
-          <h1 ref={bannerRef} className="banner-title">{(app && app.title) || "Lycan Utilities"}</h1>
-          {app && app.subtitle ? <p className="banner-sub">{app.subtitle}</p> : null}
+          <h1 ref={bannerRef} className="banner-title"><EmojiText text={(app && app.title) || "Lycan Utilities"} /></h1>
+          {app && app.subtitle ? <p className="banner-sub"><EmojiText text={app.subtitle} /></p> : null}
         </div>
         <div className="toolbar">
           <div className="search">
@@ -132,21 +134,25 @@ export default function HomeDashboard({ tools = [], app, onOpenTool, onToggleFav
             ))}
           </div>
         </div>
-        <div className="card-grid">
-          {list.length === 0 ? (
-            <div className="empty-note">Utility search results not found</div>
-          ) : (
-            list.map((tool) => (
-              <Card
-                key={tool.id}
-                tool={tool}
-                query={search}
-                onOpen={() => onOpenTool(tool)}
-                onToggleFavorite={onToggleFavorite}
-              />
-            ))
-          )}
-        </div>
+        <UtilityCardList
+          items={list}
+          getKey={(t) => t.id}
+          onItemClick={onOpenTool}
+          getTooltip={(t) => (t.description ? t.description : undefined)}
+          renderCard={(tool) => <CardBody tool={tool} query={search} onToggleFavorite={onToggleFavorite} />}
+          emptyState={
+            <div className="empty-note">
+              <div className="image-container">
+                <img src="/assets/icons/wolf-sad.png" alt="Sad Wolf" className="empty-icon" />
+                <div
+                  className="overlay-blur"
+                  style={{ backgroundImage: `url(/assets/icons/wolf-sad.png)` }}
+                />
+              </div>
+              <p className="white-text">Utility search results not found</p>
+            </div>
+          }
+        />
       </div>
     </div>
   );

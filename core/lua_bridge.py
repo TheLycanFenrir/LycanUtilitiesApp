@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List
 
+from core.interop import InteropError
+
 # Single source of truth for the cross-language command set. Every name is a
 # public ``InteropContext`` method exposed to Lua as a global function.
 COMMANDS: List[str] = [
@@ -36,6 +38,8 @@ COMMANDS: List[str] = [
     "unhide_field",
     "set_focus",
     "set_field_status",
+    # UI action layer (backend -> React action handlers)
+    "send_ui_action",
     # String validation & sanitization
     "regex_validation",
     "regex_sanitization",
@@ -63,6 +67,8 @@ EXTRA_COMMANDS: List[str] = [
     "wait_if_paused",
     "asset_path",
     "project_root",
+    "get_app_setting",
+    "available_cores",
 ]
 
 
@@ -126,6 +132,47 @@ def register_commands(lua, ctx) -> None:
     globals_obj["aborted"] = lambda: bool(ctx.aborted)
 
 
+def _unwrap_error(exc: BaseException) -> Exception:
+    """Find the original exception thrown by an ``InteropContext`` method.
+
+    lupa wraps a Python exception raised inside a bound ``python_function`` in
+    its own error object; the original ships in the error's ``args`` (or behind
+    ``__cause__``). Peel it back so ``InteropError`` (throw_error) can be
+    reported with just its message, like the Python-hook path.
+    """
+    seen = set()
+
+    def _walk(err):
+        if err is None:
+            return None
+        err_id = id(err)
+        if err_id in seen:
+            return None
+        seen.add(err_id)
+        if isinstance(err, InteropError):
+            return err
+        for item in getattr(err, "args", ()) or ():
+            candidate = _walk(item if isinstance(item, BaseException) else None)
+            if isinstance(candidate, InteropError):
+                return candidate
+        candidate = _walk(err.__cause__)
+        if isinstance(candidate, InteropError):
+            return candidate
+        candidate = _walk(err.__context__)
+        if isinstance(candidate, InteropError):
+            return candidate
+        return None
+
+    return _walk(exc)
+
+
+def _execute_source(lua, ctx, source: str):
+    """Register commands and run Lua source, returning a plain result dict."""
+    register_commands(lua, ctx)
+    result = lua.execute(str(source))
+    return {"ok": True, "result": _to_python(result)}
+
+
 def run_lua_script(ctx, script_path: str) -> Dict[str, Any]:
     """Execute a Lua hook against the interop context (requires ``lupa``)."""
     import os
@@ -141,12 +188,13 @@ def run_lua_script(ctx, script_path: str) -> Dict[str, Any]:
         return {"ok": False, "reason": "missing_file", "path": str(script_path)}
     lua = LuaRuntime(unpack_returned_tuples=True)
     try:
-        register_commands(lua, ctx)
         with open(script_path, "r", encoding="utf-8") as fh:
             source = fh.read()
-        result = lua.execute(source)
-        return {"ok": True, "result": result}
+        return _execute_source(lua, ctx, source)
     except Exception as exc:
+        interop = _unwrap_error(exc)
+        if isinstance(interop, InteropError):
+            return {"ok": False, "reason": str(interop), "interop": True}
         return {"ok": False, "reason": str(exc)}
 
 
@@ -158,8 +206,53 @@ def run_lua_source(ctx, source: str) -> Dict[str, Any]:
         return {"ok": False, "reason": "lua_runtime_missing"}
     lua = LuaRuntime(unpack_returned_tuples=True)
     try:
-        register_commands(lua, ctx)
-        result = lua.execute(str(source))
-        return {"ok": True, "result": result}
+        return _execute_source(lua, ctx, source)
     except Exception as exc:
+        interop = _unwrap_error(exc)
+        if isinstance(interop, InteropError):
+            return {"ok": False, "reason": str(interop), "interop": True}
+        return {"ok": False, "reason": str(exc)}
+
+
+def run_lua_action(ctx, script_path: str, action_id: str, params: Any = None) -> Dict[str, Any]:
+    """Dispatch a UI action to a Lua runtime's ``on_ui_action`` handler.
+
+    A runtime script is a top-level program that ends in ``return run(ctx)``,
+    so a dedicated action entry point cannot re-run the job. Loading the file
+    with a *neutered* ``run`` global lets Lua define its helpers and any
+    ``on_ui_action(ctx, action_id, params)`` handler exactly once; the trailing
+    ``return run()`` then simply returns the no-op stub. When the script
+    declares no handler the result reports ``no_ui_action_handler``.
+    """
+    import os
+    try:
+        from lupa import LuaRuntime
+    except ImportError:
+        return {
+            "ok": False,
+            "reason": "lua_runtime_missing",
+            "note": "Install 'lupa' to run Lua hooks; Python hooks remain available.",
+        }
+    if not os.path.isfile(str(script_path)):
+        return {"ok": False, "reason": "missing_file", "path": str(script_path)}
+    lua = LuaRuntime(unpack_returned_tuples=True)
+    try:
+        globals_obj = lua.globals()
+        register_commands(lua, ctx)
+        # Neuter the job entrypoint so loading the script never re-runs the job.
+        globals_obj["run"] = lambda *args, **kwargs: {"ok": True, "message": "action context"}
+        with open(script_path, "r", encoding="utf-8") as fh:
+            lua.execute(fh.read())
+        try:
+            hook = globals_obj["on_ui_action"]
+        except Exception:
+            hook = None
+        if hook is None or not callable(hook):
+            return {"ok": False, "reason": "no_ui_action_handler"}
+        result = hook(ctx, str(action_id), _to_lua(lua, {} if params is None else params))
+        return {"ok": True, "result": _to_python(result)}
+    except Exception as exc:
+        interop = _unwrap_error(exc)
+        if isinstance(interop, InteropError):
+            return {"ok": False, "reason": str(interop), "interop": True}
         return {"ok": False, "reason": str(exc)}

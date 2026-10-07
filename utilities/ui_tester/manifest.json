@@ -1,0 +1,17 @@
+{
+  "id": "ui_tester",
+  "title": "UI Tester",
+  "description": "Dummy utility that exercises every form control, live field visibility, validation and regex behaviour for UI testing.",
+  "python_requirements": [],
+  "additional_requirements": [],
+  "version": "1.0.0",
+  "icon": "🧪",
+  "badge": "Test",
+  "tags": ["test", "ui", "demo", "controls", "sandbox"],
+  "runtime": "runtime.py",
+  "schema": "form_schema.json",
+  "form_engine": "auto",
+  "handlers": {
+    "python": "runtime.py"
+  }
+}

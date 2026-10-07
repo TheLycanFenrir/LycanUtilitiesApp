@@ -1,0 +1,8 @@
+{
+  "title": "Frames to Video",
+  "description": "Convert a folder of named frame images into a smooth MP4, WebM, GIF, APNG or WEBP video.",
+  "python_requirements": ["Pillow"],
+  "additional_requirements": [{"name": "FFmpeg", "type": "external", "required": true}],
+  "credits": "Lycan Utilities",
+  "size_estimate": "~2 MB"
+}

@@ -1,0 +1,137 @@
+/* Utility Card Stack List - plain CSS module.
+ * Only hardware-accelerated properties (transform / opacity) are animated.
+ * Entrance + exit are native keyframes; positional moves are driven by FLIP
+ * (single-frame transform inversion + identity transition on .moving). */
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  flex: 1 1 230px;
+  width: 230px;
+  max-width: 280px;
+  height: 82px;
+  padding: 10px 40px 10px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  backdrop-filter: blur(6px);
+  box-sizing: border-box;
+  transition:
+    transform 280ms cubic-bezier(.22, .61, .36, 1),
+    opacity 220ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--panel-2) 88%, transparent);
+  border-color: var(--accent);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, .42),
+    0 0 0 1px color-mix(in srgb, var(--accent) 38%, transparent),
+    0 0 22px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* Single-frame FLIP inversion; the base .card transition glides it back into
+ * place. Promoted to its own layer during the move only. */
+.moving {
+  will-change: transform;
+}
+
+/* Entrance: cards stack in from below with a slight scale/fade. */
+.enter {
+  animation: utility-card-in 340ms cubic-bezier(.19, 1, .22, 1) both;
+  will-change: transform, opacity;
+}
+
+/* Exit: removed cards shrink, fade and drift upward in place. */
+.leave {
+  animation: utility-card-out 260ms ease-in forwards;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.steady {
+  will-change: transform, opacity;
+}
+
+/* Tooltip (description) shown on hover, matching the dashboard card style. */
+.card[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%) translateY(8px);
+  z-index: 50;
+  width: max-content;
+  max-width: min(300px, 90vw);
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .14s ease, transform .14s ease;
+}
+.card[data-tooltip]:focus-visible::after,
+.card[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@keyframes utility-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(.94);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes utility-card-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(.86);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .enter,
+  .leave,
+  .steady {
+    animation: none;
+    transition: none;
+  }
+}

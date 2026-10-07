@@ -2,6 +2,8 @@
   "id": "frames_to_video",
   "title": "Frames to Video",
   "description": "Turn image sequences into MP4, WebM, GIF, APNG or WEBP videos.",
+  "python_requirements": ["Pillow"],
+  "additional_requirements": [{"name": "FFmpeg", "type": "external", "required": true}],
   "version": "1.0.0",
   "icon": "🎞️",
   "icon_file": "assets/icons/frames_to_video.png",
@@ -11,6 +13,7 @@
   "schema": "form_schema.json",
   "form_engine": "auto",
   "handlers": {
-    "python": "runtime.py"
+    "python": "runtime.py",
+    "lua": "runtime.lua"
   }
 }

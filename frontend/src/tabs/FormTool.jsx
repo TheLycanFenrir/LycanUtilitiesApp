@@ -16,7 +16,9 @@ function FormToolInner({ tool, call, console, onBack, focusJobId, queuedEdit, on
 
   // Collect current form values into the backend job parameter payload. Color
   // fields are stored as hex in the UI but serialized as [r, g, b] for the
-  // runtime scripts.
+  // runtime scripts. open_explorer_after_conversion stays a frontend toggle
+  // and is always serialized (true or false) so an explicit "off" survives
+  // reloads. The output log console is always part of the tool layout.
   const collectParams = () => {
     const p = { ...getAll() };
     for (const s of schema || []) {
@@ -25,11 +27,16 @@ function FormToolInner({ tool, call, console, onBack, focusJobId, queuedEdit, on
         if (rgb) p[s.field_id] = rgb;
       }
     }
-    if (openExplorer) p.open_explorer_after_conversion = true;
+    p.open_explorer_after_conversion = openExplorer;
     return p;
   };
 
-  usePersistentForm({ toolId: tool.id, call, collect: collectParams, enabled: ready });
+  const { flush } = usePersistentForm({ toolId: tool.id, call, collect: collectParams, enabled: ready });
+
+  // Save immediately when any field loses focus
+  const handleFieldBlur = useCallback(() => {
+    if (ready) flush();
+  }, [ready, flush]);
 
   // Restore the user's saved settings once, then enable persistence so the
   // defaults never overwrite stored values on the first tick.
@@ -43,7 +50,12 @@ function FormToolInner({ tool, call, console, onBack, focusJobId, queuedEdit, on
         saved = null;
       }
       if (cancelled) return;
-      if (saved && typeof saved === "object" && Object.keys(saved).length) setAll(saved);
+      if (saved && typeof saved === "object" && Object.keys(saved).length) {
+        const { open_explorer_after_conversion: savedOpenExplorer, ...formValues } = saved;
+        delete formValues.show_output_log;
+        if (typeof savedOpenExplorer === "boolean") setOpenExplorer(savedOpenExplorer);
+        setAll(formValues);
+      }
       setReady(true);
     })();
     return () => {
@@ -137,7 +149,7 @@ function FormToolInner({ tool, call, console, onBack, focusJobId, queuedEdit, on
       openExplorer={openExplorer}
       onOpenExplorerChange={setOpenExplorer}
     >
-      <FormGenerator call={call} description={schemaDescription} />
+      <FormGenerator call={call} description={schemaDescription} onFieldBlur={handleFieldBlur} />
     </ToolTabLayout>
   );
 }

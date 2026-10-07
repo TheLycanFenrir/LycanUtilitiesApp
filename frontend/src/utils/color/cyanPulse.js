@@ -2,11 +2,11 @@ const STEP_MS = 100;
 const CYCLE_MS = 4000;
 
 const BRIGHT_R = 0;
-const BRIGHT_G = 255;
+const BRIGHT_G = 136;
 const BRIGHT_B = 255;
 const DIM_R = 0;
-const DIM_G = 139;
-const DIM_B = 139;
+const DIM_G = 75;
+const DIM_B = 123;
 
 const reduceMotion =
   typeof window !== "undefined" &&
@@ -53,7 +53,7 @@ function tick() {
   }
 }
 
-export function registerCyanPulse(el, kind) {
+export function registerBluePulse(el, kind) {
   if (!el || nodes.has(el)) return;
   const k = kind === "frame" ? "frame" : "text";
   nodes.set(el, k);
@@ -67,7 +67,7 @@ export function registerCyanPulse(el, kind) {
   }
 }
 
-export function unregisterCyanPulse(el) {
+export function unregisterBluePulse(el) {
   if (!el) return;
   nodes.delete(el);
   if (nodes.size === 0 && timerId !== null) {

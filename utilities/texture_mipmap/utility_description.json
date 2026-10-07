@@ -1,0 +1,8 @@
+{
+  "title": "Texture Mipmap",
+  "description": "Generate mipmap chains from a source texture for DDS and other game-art workflows.",
+  "python_requirements": ["Pillow", "numpy"],
+  "additional_requirements": [],
+  "credits": "Lycan Utilities",
+  "size_estimate": "~2 MB"
+}

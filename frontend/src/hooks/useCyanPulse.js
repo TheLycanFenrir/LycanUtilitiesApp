@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import { registerCyanPulse, unregisterCyanPulse } from "../utils/color/cyanPulse.js";
+import { registerBluePulse, unregisterBluePulse } from "../utils/color/cyanPulse.js";
 
-export default function useCyanPulse(ref, kind) {
+export default function useBluePulse(ref, kind) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    registerCyanPulse(el, kind);
-    return () => unregisterCyanPulse(el);
+    registerBluePulse(el, kind);
+    return () => unregisterBluePulse(el);
   }, [ref, kind]);
 }

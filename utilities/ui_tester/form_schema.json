@@ -1,0 +1,275 @@
+{
+  "description": "A sandbox form that demonstrates every supported field type and live-show/hide behaviour. Nothing here touches real files.",
+  "fields": [
+    {
+      "field_id": "name_input",
+      "type": "text",
+      "part": "Text Input",
+      "label_name": "Display Name",
+      "default_input": "Lycan",
+      "required": true,
+      "min_length": 3,
+      "max_length": 32,
+      "placeholder": "Type a display name...",
+      "tooltip": "Between 3 and 32 characters (letters, digits, spaces, - and _).",
+      "description": "Validated in real time against ^[A-Za-z0-9 _-]{3,32}$.",
+      "enable_validation": true,
+      "real_time_validation": true,
+      "regex_validation": "^[A-Za-z0-9 _\\-]{3,32}$"
+    },
+    {
+      "field_id": "sanitized_input",
+      "type": "text",
+      "part": "Text Input",
+      "label_name": "Sanitized Text",
+      "default_input": "hello world",
+      "placeholder": "Non-alphanumeric chars are stripped...",
+      "tooltip": "Any character that is not a letter, digit or space is auto-stripped while typing.",
+      "enable_validation": true,
+      "regex_sanitization": {
+        "pattern": "[^A-Za-z0-9 ]",
+        "replacement": ""
+      }
+    },
+    {
+      "field_id": "integer_fader",
+      "type": "number",
+      "part": "Numbers",
+      "label_name": "Integer Fader",
+      "default_input": 50,
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "force_clamp": true,
+      "allow_decimal": false,
+      "tooltip": "Clamped to 0-100 in steps of 5, decimals disabled."
+    },
+    {
+      "field_id": "decimal_input",
+      "type": "number",
+      "part": "Numbers",
+      "label_name": "Signed Decimal",
+      "default_input": 0,
+      "min": -10,
+      "max": 10,
+      "step": 0.1,
+      "allow_decimal": true,
+      "allow_negative": true,
+      "description": "Accepts negative and decimal values between -10 and 10."
+    },
+    {
+      "field_id": "choice",
+      "type": "dropdown",
+      "part": "Selections",
+      "label_name": "Pick an Option",
+      "default_input": "b",
+      "pre_defined_dropdown": [
+        ["a", "Option A"],
+        ["b", "Option B"],
+        ["c", "Option C"]
+      ],
+      "description": "Choosing 'Option C' reveals the extra field below."
+    },
+    {
+      "field_id": "revealed_text",
+      "type": "text",
+      "part": "Selections",
+      "label_name": "Revealed Field",
+      "default_input": "Surprise!",
+      "show_if": {
+        "field": "choice",
+        "equals": "c"
+      },
+      "tooltip": "Only visible when Option C is selected."
+    },
+    {
+      "field_id": "meeting_date",
+      "type": "date",
+      "part": "Dates & Colors",
+      "label_name": "Due Date",
+      "default_input": "2026-01-01"
+    },
+    {
+      "field_id": "accent_color",
+      "type": "color",
+      "part": "Dates & Colors",
+      "label_name": "Accent Color",
+      "default_input": "#3366ff"
+    },
+    {
+      "field_id": "enable_advanced",
+      "type": "checkbox",
+      "part": "Toggles",
+      "label_name": "Enable Advanced Options",
+      "default_input": false,
+      "tooltip": "Toggles the advanced fields and hides the hint below."
+    },
+    {
+      "field_id": "advanced_text",
+      "type": "text",
+      "part": "Toggles",
+      "label_name": "Advanced Note",
+      "default_input": "",
+      "placeholder": "Only visible when advanced options are on...",
+      "show_if": {
+        "field": "enable_advanced",
+        "equals": true
+      }
+    },
+    {
+      "field_id": "advanced_level",
+      "type": "number",
+      "part": "Toggles",
+      "label_name": "Advanced Level",
+      "default_input": 3,
+      "min": 1,
+      "max": 9,
+      "allow_decimal": false,
+      "show_if": {
+        "field": "enable_advanced",
+        "equals": true
+      }
+    },
+    {
+      "field_id": "hidden_hint",
+      "type": "text",
+      "part": "Toggles",
+      "label_name": "Basic Hint",
+      "default_input": "You can enable advanced options above.",
+      "hide_if": {
+        "field": "enable_advanced",
+        "equals": true
+      }
+    },
+    {
+      "field_id": "source_type",
+      "type": "dropdown",
+      "part": "Files",
+      "label_name": "Source Type",
+      "default_input": "file",
+      "pre_defined_dropdown": [
+        ["file", "Single File"],
+        ["folder", "Folder (Bulk)"]
+      ]
+    },
+    {
+      "field_id": "source_target",
+      "type": "file",
+      "part": "Files",
+      "label_name": "Source",
+      "mode": {
+        "parts": [["source_type", "folder", "folder"]],
+        "default": "file"
+      },
+      "file_types": "Images (*.png;*.jpg;*.jpeg;*.webp;*.tga;*.tiff;*.bmp)",
+      "placeholder": "Pick a file, or switch to a Folder source...",
+      "description": "The file dialog switches type depending on Source Type.",
+      "required": true
+    },
+    {
+      "field_id": "output_dir",
+      "type": "file",
+      "part": "Files",
+      "label_name": "Output Folder",
+      "mode": "folder",
+      "placeholder": "Destination directory..."
+    },
+    {
+      "field_id": "saved_image",
+      "type": "file",
+      "part": "Files",
+      "label_name": "Save As",
+      "mode": "output",
+      "file_types": "PNG image (*.png)",
+      "placeholder": "Result file path..."
+    },
+    {
+      "type": "section",
+      "idName": "tester_summary_card",
+      "className": "card-demo",
+      "styleCSS": {
+        "padding": "16px",
+        "marginBottom": "16px",
+        "border": "1px solid var(--border)",
+        "borderRadius": "var(--radius)",
+        "background": "var(--panel)",
+        "display": "flex",
+        "flexDirection": "column",
+        "gap": "12px"
+      },
+      "children": [
+        {
+          "type": "div",
+          "idName": "tester_card_header",
+          "className": "card-demo-header",
+          "styleCSS": {
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "gap": "8px"
+          },
+          "children": [
+            {
+              "type": "h2",
+              "className": "panel-title",
+              "innerText": "Card Demo"
+            },
+            {
+              "type": "span",
+              "className": "field-note",
+              "innerText": "Rendered by CardGenerator"
+            }
+          ]
+        },
+        {
+          "type": "p",
+          "className": "form-desc",
+          "innerText": "This card is a form_schema entry of type \"card\". Fields inside it are the normal FormField controls placed by the card layout. Cards nest other cards and any HTML-like element, and accept idName, className, styleCSS and innerText."
+        },
+        {
+          "type": "div",
+          "idName": "tester_card_grid",
+          "styleCSS": {
+            "display": "grid",
+            "gridTemplateColumns": "1fr 1fr",
+            "gap": "12px"
+          },
+          "children": [
+            {
+              "type": "form_component",
+              "field_id": "name_input",
+              "className": "cols-2"
+            },
+            {
+              "type": "form_component",
+              "field_id": "sanitized_input",
+              "label_name": "Sanitized Text (in card)"
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "idName": "tester_nested_card",
+          "className": "test-card",
+          "styleCSS": {
+            "padding": "10px",
+            "border": "1px dashed var(--border)",
+            "borderRadius": "var(--radius-sm)"
+          },
+          "children": [
+            {
+              "type": "span",
+              "innerText": "Nested card content. Buttons are declarative too: "
+            },
+            {
+              "type": "button",
+              "typeAttribute": "button",
+              "className": "btn",
+              "innerText": "Example Button"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

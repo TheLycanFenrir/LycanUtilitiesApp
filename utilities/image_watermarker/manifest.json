@@ -2,6 +2,8 @@
   "id": "image_watermarker",
   "title": "Image Watermarker",
   "description": "Watermark any image with text or logos",
+  "python_requirements": ["Pillow"],
+  "additional_requirements": [],
   "version": "1.0.0",
   "icon_file": "assets/icons/video_audio_merger.png",
   "icon": "🖼️",

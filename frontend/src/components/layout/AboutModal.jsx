@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Icon } from "../common/SvgIcon.jsx";
+import EmojiText from "../common/EmojiText.jsx";
 import { openExternalLink } from "../../utils/platform/bridge.js";
-import useCyanPulse from "../../hooks/useCyanPulse.js";
+import useBluePulse from "../../hooks/useCyanPulse.js";
 
 const STACK = ["FFmpeg", "PyWebView", "React"];
 
@@ -26,7 +27,7 @@ const FEATURES = [
 
 export default function AboutModal({ app = {}, call, onClose }) {
   const titleRef = useRef(null);
-  useCyanPulse(titleRef);
+  useBluePulse(titleRef);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -49,12 +50,12 @@ export default function AboutModal({ app = {}, call, onClose }) {
           <img src="/assets/favicon.png" alt={title} />
         </div>
         <div className="about-body">
-          <h3 ref={titleRef} className="about-title" id="about-title">About {title}</h3>
+          <h3 ref={titleRef} className="about-title" id="about-title"><EmojiText text={"About " + title} /></h3>
           <div className="about-version-line">
             <span className="about-badge">Alpha</span>
             {version ? <span className="about-version">Version {version}</span> : null}
           </div>
-          {subtitle ? <p className="about-desc">{subtitle}</p> : null}
+          {subtitle ? <p className="about-desc"><EmojiText text={subtitle} /></p> : null}
 
           <div className="about-section-label">Capabilities</div>
           <ul className="about-features">
@@ -64,19 +65,19 @@ export default function AboutModal({ app = {}, call, onClose }) {
                   <Icon name="check" />
                 </span>
                 <div className="about-feature-body">
-                  <span className="about-feature-title">{feature.title}</span>
-                  <span className="about-feature-text">{feature.text}</span>
+                  <span className="about-feature-title"><EmojiText text={feature.title} /></span>
+                  <span className="about-feature-text"><EmojiText text={feature.text} /></span>
                 </div>
               </li>
             ))}
           </ul>
 
           <p className="about-stack">
-            Powered by {STACK.join(", ")}. Runs entirely offline — files never leave your machine.
+            <EmojiText text={"Powered by " + STACK.join(", ") + ". Runs entirely offline — files never leave your machine."} />
           </p>
           {contrib ? (
             <p className="about-credits">
-              Developed by <b>{contrib}</b>. Feedback, bug reports and contributions are welcome on GitHub.
+              Developed by <b><EmojiText text={contrib} /></b>. Feedback, bug reports and contributions are welcome on GitHub.
             </p>
           ) : null}
 

@@ -1,0 +1,14 @@
+{
+  "runtime.version": "LuaJIT",
+  "diagnostics.globals": ["unpack", "select"],
+  "diagnostics.workspaceDelay": 600,
+  "workspace.ignoreDir": [
+    ".git",
+    ".idea",
+    ".venv",
+    "__pycache__",
+    "dist",
+    "node_modules",
+    "userdata"
+  ]
+}

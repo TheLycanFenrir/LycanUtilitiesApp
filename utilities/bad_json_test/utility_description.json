@@ -1,0 +1,6 @@
+{
+  "title": "Broken JSON Inspection",
+  "description": "Sample utility with a malformed manifest for loading the error-path inspection tab.",
+  "credits": "Lycan Utilities",
+  "size_estimate": "Small"
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Image Watermarker",
+  "description": "Stamp a watermark (text, brand or logo image) over one or many images at once.",
+  "python_requirements": ["Pillow"],
+  "additional_requirements": [],
+  "credits": "Lycan Utilities",
+  "size_estimate": "~2 MB"
+}
