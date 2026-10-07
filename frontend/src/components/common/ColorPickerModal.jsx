@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import EmojiText from "./EmojiText.jsx";
 import { MODE_DEFS, hexToRgb, rgbToHex, rgbToCmyk, sanitizeHexChars } from "../../utils/color/colorMath.js";
 import {
   DEFAULT_PALETTE,
@@ -295,7 +296,10 @@ export default function ColorPickerModal({ initial = "#000000", onCommit, onClos
   }, [scheduleDraw, fixedValue, mode, profile, gamut, emulation]);
 
   useEffect(() => () => {
-    if (drawRafRef.current) cancelAnimationFrame(drawRafRef.current);
+    if (drawRafRef.current) {
+      cancelAnimationFrame(drawRafRef.current);
+      drawRafRef.current = null;
+    }
   }, []);
 
   // ---------------- pointer handling on the 2D box ----------------
@@ -1007,7 +1011,7 @@ const applyBox = useCallback((clientX, clientY) => {
                       title="Delete palette"
                       onClick={() => deletePalette(activePaletteId)}
                     >
-                      🗑
+                      <EmojiText text="🗑" />
                     </button>
                   </>
                 )}

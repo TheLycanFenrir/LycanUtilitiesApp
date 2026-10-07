@@ -2,16 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "../common/SvgIcon.jsx";
 import { useTheme } from "../../contexts/ThemeContext.jsx";
 import { useZoom } from "../../contexts/ZoomContext.jsx";
-import { openDevTools, openExternalLink, quitApp, reloadApp, hardRefreshApp, restartApp } from "../../utils/platform/bridge.js";
-import useCyanPulse from "../../hooks/useCyanPulse.js";
+import { openDevTools, openExternalLink, quitApp, reloadApp, hardRefreshApp, restartApp, openUtilitiesFolder } from "../../utils/platform/bridge.js";
+import useBluePulse from "../../hooks/useCyanPulse.js";
 import WorkerDropdown from "./WorkerDropdown.jsx";
+import StoreDropdown from "./StoreDropdown.jsx";
 
 function Brand({ app, goHome }) {
   const version = app.version ? "v" + app.version : "Alpha";
   const wordRef = useRef(null);
   const utilityRef = useRef(null);
-  useCyanPulse(wordRef);
-  useCyanPulse(utilityRef);
+  useBluePulse(wordRef);
+  useBluePulse(utilityRef);
   return (
     <div
       className="brand"
@@ -126,6 +127,9 @@ function Menu({ call, app, openAbout, openSettings, onCheckUpdates }) {
       case "restart":
         restartApp(call);
         break;
+      case "utilities":
+        openUtilitiesFolder(call);
+        break;
       case "checkupdates":
         onCheckUpdates();
         break;
@@ -189,6 +193,13 @@ function Menu({ call, app, openAbout, openSettings, onCheckUpdates }) {
           >
             <span className="menu-label">Settings</span>
           </button>
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => act("utilities")}
+          >
+            <span className="menu-label">Open Utilities Folder</span>
+          </button>
           <div className="menu-sep" role="separator"></div>
           {APP_ITEMS.map((item) => (
             <button key={item.action} type="button" className="menu-item" onClick={() => act(item.action)}>
@@ -211,12 +222,13 @@ function Menu({ call, app, openAbout, openSettings, onCheckUpdates }) {
   );
 }
 
-export default function Topbar({ call, app, goHome, openAbout, openSettings, onCheckUpdates, onFocusTool, onEditJob, hidden }) {
+export default function Topbar({ call, app, goHome, openAbout, openSettings, onCheckUpdates, onFocusTool, onEditJob, hidden, storeOpen, onStoreOpenChange, storeSearchQuery }) {
   return (
     <header className={"topbar" + (hidden ? " content-hidden" : "")}>
       <Brand app={app} goHome={goHome} />
       <div className="topbar-right">
         <WorkerDropdown call={call} onFocusTool={onFocusTool} onEditJob={onEditJob} />
+        <StoreDropdown call={call} open={storeOpen} onOpenChange={onStoreOpenChange} initialSearchQuery={storeSearchQuery} />
         <GithubButton call={call} url={app.github_url || "https://github.com/TheLycanFenrir"} />
         <ZoomControl />
         <ThemeSwitch />

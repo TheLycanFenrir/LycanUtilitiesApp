@@ -1,0 +1,104 @@
+{
+  "ok": true,
+  "internet": true,
+  "fetched_at": "2026-09-22T21:28:55",
+  "items": [
+    {
+      "id": "bad_json_test",
+      "title": "Broken JSON Inspection",
+      "description": "Sample utility with a malformed manifest for loading the error-path inspection tab.",
+      "icon": "",
+      "version": "1.0.0",
+      "credits": "Lycan Utilities",
+      "size_estimate": "Small",
+      "installed": false
+    },
+    {
+      "id": "bad_schema_test",
+      "title": "Bad Schema Inspection",
+      "description": "Sample utility with an invalid form schema for loading the schema-error inspection tab.",
+      "icon": "",
+      "version": "1.0.0",
+      "credits": "Lycan Utilities",
+      "size_estimate": "Small",
+      "installed": false
+    },
+    {
+      "id": "blank_schema",
+      "title": "Blank Schema",
+      "description": "",
+      "icon": "",
+      "version": "1.0.0",
+      "credits": "Lycan Utilities",
+      "size_estimate": "~2 MB",
+      "installed": true
+    },
+    {
+      "id": "card_test",
+      "title": "Card UI Demo",
+      "description": "Reference samples for the JSON-driven UI layout system: HTML containers, embedded form fields, nested cards, sections with header/actions/footer, declarative popups, conditional visibility and the UI action bridge.",
+      "icon": "",
+      "version": "1.0.0",
+      "credits": "Lycan Utilities",
+      "size_estimate": "~2 MB",
+      "installed": true
+    },
+    {
+      "id": "frames_to_video",
+      "title": "Frames to Video",
+      "description": "Convert a folder of named frame images into a smooth MP4, WebM, GIF, APNG or WEBP video.",
+      "icon": "assets/.cache/icons/frames_to_video.png",
+      "version": "1.0.0",
+      "credits": "Lycan Utilities",
+      "size_estimate": "~2 MB",
+      "installed": true
+    },
+    {
+      "id": "image_splitter",
+      "title": "Image Splitter",
+      "description": "Split large textures into grids, custom tile sizes or alpha components for map and texture workflows.",
+      "icon": "assets/.cache/icons/image_splitter.png",
+      "version": "1.0.0",
+      "credits": "Lycan Utilities",
+      "size_estimate": "~2 MB",
+      "installed": true
+    },
+    {
+      "id": "image_watermarker",
+      "title": "Image Watermarker",
+      "description": "Stamp a watermark (text, brand or logo image) over one or many images at once.",
+      "icon": "assets/.cache/icons/video_audio_merger.png",
+      "version": "1.0.0",
+      "credits": "Lycan Utilities",
+      "size_estimate": "~2 MB",
+      "installed": true
+    },
+    {
+      "id": "texture_mipmap",
+      "title": "Texture Mipmap",
+      "description": "Generate mipmap chains from a source texture for DDS and other game-art workflows.",
+      "icon": "assets/.cache/icons/texture_mipmap_generator.png",
+      "version": "1.0.0",
+      "credits": "Lycan Utilities",
+      "size_estimate": "~2 MB",
+      "installed": true
+    },
+    {
+      "id": "ui_tester",
+      "title": "UI Tester",
+      "description": "Exercise every form control, live field visibility, validation and regex behaviour for UI testing.",
+      "icon": "",
+      "version": "1.0.0",
+      "credits": "Lycan Utilities",
+      "size_estimate": "Small",
+      "installed": true
+    }
+  ],
+  "actions": [
+    {
+      "item_id": "bad_json_test",
+      "action": "download",
+      "at": "2026-09-13T16:48:42"
+    }
+  ]
+}

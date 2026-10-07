@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import ColorField from "../common/ColorField.jsx";
+import EmojiText from "../common/EmojiText.jsx";
 import { rgbToHex } from "../../utils/color/colorMath.js";
 import { dirname, dirnameWithSep, fileName } from "../../utils/paths/paths.js";
 import { useFormState } from "../../contexts/FormStateContext.jsx";
+import { buildFieldHtmlProps } from "./htmlProps.js";
 
 function toDomId(fieldId) {
   return "in-" + fieldId;
@@ -44,12 +46,13 @@ function UseFocusWatcher({ schema, controlRef }) {
   return null;
 }
 
-export default function FormField({ entry, call }) {
+export default function FormField({ entry, call, onFieldBlur }) {
   const { snapshot, setValue } = useFormState();
   const schema = entry.schema;
   const value = entry.value;
   const controlRef = useRef(null);
   const domId = toDomId(schema.field_id);
+  const htmlProps = buildFieldHtmlProps(schema);
 
   const browse = async () => {
     if (!call) return;
@@ -79,13 +82,17 @@ export default function FormField({ entry, call }) {
       control = (
         <input
           ref={controlRef}
+          {...htmlProps}
           id={domId}
           type="text"
           value={value}
           maxLength={typeof schema.max_length === "number" ? schema.max_length : undefined}
           placeholder={schema.placeholder}
           onChange={(e) => setValue(schema.field_id, e.target.value, { validate: schema.real_time_validation !== false })}
-          onBlur={(e) => setValue(schema.field_id, e.target.value)}
+          onBlur={(e) => {
+            setValue(schema.field_id, e.target.value);
+            onFieldBlur?.();
+          }}
         />
       );
       break;
@@ -93,6 +100,7 @@ export default function FormField({ entry, call }) {
       control = (
         <input
           ref={controlRef}
+          {...htmlProps}
           id={domId}
           type="number"
           value={value}
@@ -102,7 +110,10 @@ export default function FormField({ entry, call }) {
           max={schema.max}
           placeholder={schema.placeholder}
           onChange={(e) => setValue(schema.field_id, e.target.value, { validate: schema.real_time_validation !== false })}
-          onBlur={(e) => setValue(schema.field_id, e.target.value)}
+          onBlur={(e) => {
+            setValue(schema.field_id, e.target.value);
+            onFieldBlur?.();
+          }}
         />
       );
       break;
@@ -110,9 +121,11 @@ export default function FormField({ entry, call }) {
       control = (
         <select
           ref={controlRef}
+          {...htmlProps}
           id={domId}
           value={value}
           onChange={(e) => setValue(schema.field_id, e.target.value)}
+          onBlur={() => onFieldBlur?.()}
         >
           {(schema.pre_defined_dropdown || []).map(([optValue, label]) => (
             <option key={optValue} value={optValue}>{label}</option>
@@ -124,10 +137,12 @@ export default function FormField({ entry, call }) {
       control = (
         <input
           ref={controlRef}
+          {...htmlProps}
           id={domId}
           type="date"
           value={value}
           onChange={(e) => setValue(schema.field_id, e.target.value)}
+          onBlur={() => onFieldBlur?.()}
         />
       );
       break;
@@ -145,6 +160,7 @@ export default function FormField({ entry, call }) {
         <div>
           <input
             ref={controlRef}
+            {...htmlProps}
             id={domId}
             type="checkbox"
             checked={Boolean(value)}
@@ -158,11 +174,13 @@ export default function FormField({ entry, call }) {
         <div className="file-row">
           <input
             ref={controlRef}
+            {...htmlProps}
             id={domId}
             type="text"
             value={value}
             placeholder={schema.placeholder}
             onChange={(e) => setValue(schema.field_id, e.target.value)}
+            onBlur={() => onFieldBlur?.()}
           />
           <button type="button" className="btn" onClick={browse} disabled={!call}>
             Browse
@@ -189,11 +207,11 @@ export default function FormField({ entry, call }) {
       data-tooltip={schema.tooltip || undefined}
       title={schema.tooltip || undefined}
     >
-      <label htmlFor={domId}>{schema.label_name || schema.field_id}{schema.required ? <span className="req"> *</span> : null}</label>
+      <label htmlFor={domId}><EmojiText text={schema.label_name || schema.field_id} />{schema.required ? <span className="req"> *</span> : null}</label>
       <UseFocusWatcher schema={schema} controlRef={controlRef} />
       {control}
-      {schema.description ? <div className="field-note">{schema.description}</div> : null}
-      {schema.tooltip ? <div className="field-note">{schema.tooltip}</div> : null}
+      {schema.description ? <div className="field-note"><EmojiText text={schema.description} /></div> : null}
+      {schema.tooltip ? <div className="field-note"><EmojiText text={schema.tooltip} /></div> : null}
     </div>
   );
 }

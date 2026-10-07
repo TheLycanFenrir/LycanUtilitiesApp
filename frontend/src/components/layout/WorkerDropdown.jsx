@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "../common/SvgIcon.jsx";
+import EmojiText from "../common/EmojiText.jsx";
 import { svgBody } from "../../utils/icons/heroiconPaths.js";
+import { toolIconFile } from "../../utils/paths/paths.js";
 import wolfHead from "../../../public/assets/icons/wolf-head.svg?raw";
 
 const STATE_LABELS = {
@@ -405,7 +407,7 @@ export default function WorkerDropdown({ call, onFocusTool, onEditJob }) {
                   </div>
                   <div className="worker-job-meta">
                     <span className="worker-job-status">{queue.current.status_text || "Working..."}</span>
-                    <span className="worker-job-id">{queue.current.label}</span>
+                    <span className="worker-job-id"><EmojiText text={queue.current.label} /></span>
                   </div>
                   <div className="worker-job-actions">
                     {state === "running" && !queue.current.paused && (
@@ -498,7 +500,7 @@ export default function WorkerDropdown({ call, onFocusTool, onEditJob }) {
                         {item.icon_file ? (
                           <img
                             className="worker-queue-icon"
-                            src={"assets/icons/" + item.icon_file}
+                            src={toolIconFile(item.icon_file)}
                             alt=""
                             draggable={false}
                             onError={(e) => { e.currentTarget.style.display = "none"; }}
@@ -525,7 +527,7 @@ export default function WorkerDropdown({ call, onFocusTool, onEditJob }) {
                               title="Click to rename"
                               onClick={() => startRename(item)}
                             >
-                              {item.label}
+                              <EmojiText text={item.label} />
                             </button>
                           )}
                           {item.restored && (
@@ -566,7 +568,7 @@ export default function WorkerDropdown({ call, onFocusTool, onEditJob }) {
                   {queue.history.map((item) => (
                     <div className="worker-row" key={item.job_id}>
                       <span className={"status-dot " + (OUTCOME_TONES[item.outcome] || "blue")} />
-                      <span className="worker-row-label" title={item.label}>{item.label}</span>
+                      <span className="worker-row-label" title={item.label}><EmojiText text={item.label} /></span>
                       <span className="worker-row-outcome">{STATE_LABELS[item.outcome] || item.outcome}</span>
                     </div>
                   ))}

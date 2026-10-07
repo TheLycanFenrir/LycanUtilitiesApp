@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Icon } from "./common/SvgIcon.jsx";
+import { Icon, PythonIcon } from "./common/SvgIcon.jsx";
 import { useModal } from "../contexts/ModalContext.jsx";
 import { useToast } from "../contexts/ToastContext.jsx";
 import { highlight } from "./settings/highlight.jsx";
@@ -8,6 +8,7 @@ import FFmpegSection from "./settings/FFmpegSection.jsx";
 import ColorPickingSection from "./settings/ColorPickingSection.jsx";
 import StorageSection from "./settings/StorageSection.jsx";
 import GeneralSection from "./settings/GeneralSection.jsx";
+import PythonLibrariesSection from "./settings/PythonLibrariesSection.jsx";
 import {
   DEFAULT_SETTINGS,
   K_MAX_RECENTS,
@@ -21,6 +22,7 @@ import {
 const SECTIONS = [
   { id: "ffmpeg", label: "FFmpeg", icon: "cpu" },
   { id: "color", label: "Color Picking", icon: "eyedropper" },
+  { id: "python", label: "Python Libraries", icon: "code-bracket" },
   { id: "storage", label: "Internal Storage & Cache", icon: "ram" },
   { id: "general", label: "General / Presets", icon: "sun" },
 ];
@@ -130,6 +132,17 @@ function sectionCorpus(id, settings, stats) {
       gen.allow_internet ? "enabled" : "disabled",
       gen.check_updates_automatically ? "enabled" : "disabled",
       g(gen.theme),
+    ].join(" ");
+  } else if (id === "python") {
+    const pl = (settings && settings.python_libraries) || {};
+    text = [
+      "Python Libraries install and manage python packages dependencies pip PyPI",
+      "per-utility requirements needed by the tools such as Pillow numpy",
+      "search install update uninstall refresh package index internet PyPI enabled disabled",
+      "local environment only recommended shared system python interpreter base venv",
+      "requirements.txt installed missing outdated core protected third party",
+      "FFmpeg external tool check",
+      pl.local_only ? "local only" : "global shared",
     ].join(" ");
   }
   return text.toLowerCase();
@@ -285,6 +298,7 @@ export default function SettingsPanel({ call, onClose, initialSection }) {
   const cp = (settings && settings.color_picking) || DEFAULT_SETTINGS.color_picking;
   const ffmpeg = (settings && settings.ffmpeg) || DEFAULT_SETTINGS.ffmpeg;
   const general = (settings && settings.general) || DEFAULT_SETTINGS.general;
+  const python = (settings && settings.python_libraries) || DEFAULT_SETTINGS.python_libraries;
 
   return (
     <div className={styles.overlay} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -353,7 +367,9 @@ export default function SettingsPanel({ call, onClose, initialSection }) {
                     }
                     onClick={() => selectSection(section.id)}
                   >
-                    <span className={styles.navIcon}><Icon name={section.icon} /></span>
+                    <span className={styles.navIcon}>
+                      {section.id === "python" ? <PythonIcon /> : <Icon name={section.icon} />}
+                    </span>
                     <span className={styles.navLabel}>{highlight(section.label, qTrim)}</span>
                   </button>
                 );
@@ -399,6 +415,17 @@ export default function SettingsPanel({ call, onClose, initialSection }) {
               )}
               {active === "general" && (
                 <GeneralSection stats={stats} handleClear={handleClear} general={general} update={update} q={qTrim} />
+              )}
+              {active === "python" && (
+                <PythonLibrariesSection
+                  call={call}
+                  python={python}
+                  update={update}
+                  general={general}
+                  confirm={confirm}
+                  showToast={showToast}
+                  q={qTrim}
+                />
               )}
             </main>
           ) : null}

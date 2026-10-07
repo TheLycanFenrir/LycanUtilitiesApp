@@ -1,0 +1,15 @@
+{
+  "id": "bad_schema_test",
+  "title": "Broken Schema (Test)",
+  "description": "Valid manifest but a form_schema.json with an unsupported field type. Exercises the load-error tab schema-validation view.",
+  "version": "1.0.0",
+  "icon": "❌",
+  "badge": "Error",
+  "tags": ["test", "broken"],
+  "runtime": "runtime.py",
+  "schema": "form_schema.json",
+  "form_engine": "auto",
+  "handlers": {
+    "python": "runtime.py"
+  }
+}

@@ -1,0 +1,440 @@
+{
+  "description": "Sandbox utility demonstrating the UI system. form_schema entries of type \"section\" and \"popup\" render recursive, JSON-driven layouts mixing HTML-like elements, embedded FormField controls (form_component / form_field), nested containers and conditional visibility (show_if / hide_if). Elements carrying actionId dispatch through the UI action layer (built-in popup actions or the Lua/Python backend). Arbitrary HTML parameters on plain fields (autocomplete, spellcheck, inputmode, data-*) are forwarded to the rendered control. Everything here is read-only demo content.",
+  "fields": [
+    {
+      "field_id": "demo_name",
+      "type": "text",
+      "label_name": "Name",
+      "default_input": "Lycan",
+      "required": true,
+      "min_length": 2,
+      "max_length": 24,
+      "placeholder": "A display name...",
+      "tooltip": "Between 2 and 24 characters.",
+      "autocomplete": "off",
+      "spellcheck": false,
+      "data-testid": "demo-name-input"
+    },
+    {
+      "field_id": "demo_level",
+      "type": "number",
+      "label_name": "Level",
+      "default_input": 3,
+      "min": 1,
+      "max": 10,
+      "allow_decimal": false,
+      "force_clamp": true,
+      "autocomplete": "off",
+      "inputmode": "numeric"
+    },
+    {
+      "field_id": "demo_switch",
+      "type": "dropdown",
+      "label_name": "Switch",
+      "default_input": "on",
+      "pre_defined_dropdown": [
+        ["on", "On"],
+        ["off", "Off"]
+      ]
+    },
+    {
+      "field_id": "demo_extra",
+      "type": "text",
+      "label_name": "Extra Text",
+      "default_input": "Only visible while the switch is On"
+    },
+    {
+      "field_id": "demo_mode",
+      "type": "dropdown",
+      "label_name": "Mode",
+      "default_input": "light",
+      "pre_defined_dropdown": [
+        ["light", "Light"],
+        ["dark", "Dark"]
+      ]
+    },
+    {
+      "type": "section",
+      "idName": "card_intro",
+      "className": "panel",
+      "styleCSS": {
+        "padding": "16px",
+        "marginBottom": "16px",
+        "display": "flex",
+        "flexDirection": "column",
+        "gap": "10px"
+      },
+      "children": [
+        {
+          "type": "h2",
+          "className": "panel-title",
+          "innerText": "Card Intro"
+        },
+        {
+          "type": "p",
+          "className": "form-desc",
+          "innerText": "This whole page is declared in form_schema.json. Cards, headings, paragraphs, buttons and embedded fields are all JSON nodes rendered by CardGenerator — no custom JSX."
+        },
+        {
+          "type": "div",
+          "className": "card-actions",
+          "styleCSS": {
+            "display": "flex",
+            "justifyContent": "flex-end",
+            "gap": "8px",
+            "paddingTop": "6px"
+          },
+          "children": [
+            {
+              "type": "button",
+              "typeAttribute": "button",
+              "className": "btn",
+              "innerText": "Declarative Button",
+              "data-tooltip": "Buttons are declarative here; events are a future layer."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field_id": "demo_free_text",
+      "type": "text",
+      "part": "Free Text Panel",
+      "label_name": "Classic Panel In Between",
+      "default_input": "",
+      "placeholder": "This field is referenced by no card, so it renders as a regular panel right between cards."
+    },
+    {
+      "type": "section",
+      "idName": "card_profile",
+      "className": "panel",
+      "styleCSS": {
+        "padding": "16px",
+        "marginBottom": "16px",
+        "display": "flex",
+        "flexDirection": "column",
+        "gap": "12px"
+      },
+      "children": [
+        {
+          "type": "h2",
+          "className": "panel-title",
+          "innerText": "Profile"
+        },
+        {
+          "type": "p",
+          "className": "form-desc",
+          "innerText": "Form fields placed by the card layout. They are the normal FormField controls — card nodes only reference them via field_id."
+        },
+        {
+          "type": "div",
+          "idName": "profile_field_grid",
+          "styleCSS": {
+            "display": "grid",
+            "gridTemplateColumns": "1fr 1fr",
+            "gap": "12px"
+          },
+          "children": [
+            {
+              "type": "form_component",
+              "field_id": "demo_name",
+              "className": "cols-2",
+              "label_name": "Display Name"
+            },
+            {
+              "type": "form_component",
+              "field_id": "demo_level"
+            }
+          ]
+        },
+        {
+          "type": "p",
+          "innerText": "Fields are validated live (name length, numeric clamp) exactly like in classic panels.",
+          "className": "field-note"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "idName": "card_nested_grid",
+      "className": "panel",
+      "styleCSS": {
+        "padding": "16px",
+        "marginBottom": "16px",
+        "display": "grid",
+        "gridTemplateColumns": "repeat(auto-fit, minmax(200px, 1fr))",
+        "gap": "12px"
+      },
+      "children": [
+        {
+          "type": "section",
+          "idName": "mini_card_a",
+          "styleCSS": {
+            "border": "1px solid var(--border)",
+            "borderRadius": "var(--radius-sm)",
+            "padding": "12px",
+            "display": "flex",
+            "flexDirection": "column",
+            "gap": "6px"
+          },
+          "children": [
+            { "type": "span", "className": "panel-title", "innerText": "Tile A" },
+            { "type": "p", "className": "form-desc", "innerText": "Nested cards inside a grid. No form fields here — pure HTML content." },
+            { "type": "button", "typeAttribute": "button", "className": "btn", "innerText": "Tile Button" }
+          ]
+        },
+        {
+          "type": "section",
+          "idName": "mini_card_b",
+          "styleCSS": {
+            "border": "1px solid var(--border)",
+            "borderRadius": "var(--radius-sm)",
+            "padding": "12px",
+            "display": "flex",
+            "flexDirection": "column",
+            "gap": "6px"
+          },
+          "children": [
+            { "type": "span", "className": "panel-title", "innerText": "Tile B" },
+            {
+              "type": "p",
+              "className": "form-desc",
+              "innerText": "A nested card may itself contain any element type, including another nested card."
+            },
+            {
+              "type": "section",
+              "idName": "mini_card_b_inner",
+              "styleCSS": {
+                "background": "var(--panel-2)",
+                "borderRadius": "var(--radius-sm)",
+                "padding": "8px"
+              },
+              "children": [
+                { "type": "span", "innerText": "Inner nested card" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "idName": "mini_card_c",
+          "styleCSS": {
+            "border": "1px solid var(--border)",
+            "borderRadius": "var(--radius-sm)",
+            "padding": "12px",
+            "display": "flex",
+            "flexDirection": "column",
+            "gap": "6px"
+          },
+          "children": [
+            { "type": "span", "className": "panel-title", "innerText": "Tile C" },
+            { "type": "p", "className": "form-desc", "innerText": "Three animated words: " },
+            { "type": "span", "innerText": "flex" },
+            { "type": "span", "innerText": "grid" },
+            { "type": "span", "innerText": "stack" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "idName": "card_conditional",
+      "className": "panel",
+      "styleCSS": {
+        "padding": "16px",
+        "marginBottom": "16px",
+        "display": "flex",
+        "flexDirection": "column",
+        "gap": "12px"
+      },
+      "children": [
+        {
+          "type": "h2",
+          "className": "panel-title",
+          "innerText": "Conditional Visibility"
+        },
+        {
+          "type": "p",
+          "className": "form-desc",
+          "innerText": "Flip the Switch below. Children use show_if / hide_if against field values, evaluated live by the shared visibility grammar."
+        },
+        {
+          "type": "form_component",
+          "field_id": "demo_switch",
+          "className": "cols-2"
+        },
+        {
+          "type": "div",
+          "styleCSS": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gap": "8px",
+            "padding": "10px",
+            "border": "1px dashed var(--border)",
+            "borderRadius": "var(--radius-sm)"
+          },
+          "show_if": {
+            "field": "demo_switch",
+            "equals": "on"
+          },
+          "children": [
+            { "type": "span", "className": "panel-title", "innerText": "Shown while Switch is On" },
+            { "type": "form_component", "field_id": "demo_extra" }
+          ]
+        },
+        {
+          "type": "section",
+          "idName": "card_conditional_nested",
+          "styleCSS": {
+            "padding": "10px",
+            "border": "1px solid var(--border)",
+            "borderRadius": "var(--radius-sm)"
+          },
+          "show_if": {
+            "field": "demo_switch",
+            "equals": "on"
+          },
+          "children": [
+            { "type": "span", "innerText": "Conditional nested card, only rendered while the switch is On." },
+            { "type": "form_component", "field_id": "demo_mode", "label_name": "Mode" }
+          ]
+        },
+        {
+          "type": "div",
+          "className": "field-note",
+          "hide_if": {
+            "field": "demo_mode",
+            "equals": "dark"
+          },
+          "innerText": "This helper text hides itself when Mode is Dark (hide_if)."
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "idName": "sec_header_actions",
+      "className": "panel",
+      "styleCSS": {
+        "padding": "16px",
+        "marginBottom": "16px"
+      },
+      "header": [
+        {
+          "type": "h2",
+          "className": "panel-title",
+          "innerText": "Section With Header & Actions"
+        },
+        {
+          "type": "p",
+          "className": "form-desc",
+          "innerText": "\"section\" nodes extend card layout with explicit header, actions and footer areas — all routed through the same JSON node grammar and action layer."
+        }
+      ],
+      "children": [
+        {
+          "type": "form_component",
+          "field_id": "demo_mode",
+          "label_name": "Mode"
+        },
+        {
+          "type": "div",
+          "className": "field-note",
+          "innerText": "Body content sits in its own area between the header and the actions."
+        }
+      ],
+      "actions": [
+        {
+          "type": "button",
+          "typeAttribute": "button",
+          "className": "btn",
+          "innerText": "Open Demo Popup",
+          "actionId": "open_popup",
+          "actionParams": {
+            "popupId": "demo_popup"
+          },
+          "data-tooltip": "Dispatches the built-in open_popup action through the UI action layer."
+        },
+        {
+          "type": "button",
+          "typeAttribute": "button",
+          "className": "btn btn-ghost",
+          "innerText": "Toggle",
+          "actionId": "toggle_popup",
+          "actionParams": {
+            "popupId": "demo_popup"
+          }
+        }
+      ],
+      "footer": [
+        {
+          "type": "span",
+          "className": "field-note",
+          "innerText": "The footer area. Buttons with actionId route to registered handlers or the Lua/Python backend."
+        }
+      ]
+    },
+    {
+      "type": "popup",
+      "idName": "demo_popup",
+      "styleCSS": {
+        "display": "flex",
+        "flexDirection": "column",
+        "gap": "10px"
+      },
+      "children": [
+        {
+          "type": "h2",
+          "className": "panel-title",
+          "innerText": "Demo Popup"
+        },
+        {
+          "type": "p",
+          "className": "form-desc",
+          "innerText": "A declarative \"popup\" node, portaled into an overlay. It opens/closes through open_popup / close_popup / toggle_popup actions and closes on Escape or backdrop click."
+        },
+        {
+          "type": "form_component",
+          "field_id": "demo_notes",
+          "label_name": "Notes"
+        },
+        {
+          "type": "div",
+          "styleCSS": {
+            "display": "flex",
+            "justifyContent": "flex-end",
+            "gap": "8px",
+            "marginTop": "12px"
+          },
+          "children": [
+            {
+              "type": "button",
+              "typeAttribute": "button",
+              "className": "btn",
+              "innerText": "Close Popup",
+              "actionId": "close_popup",
+              "actionParams": {
+                "popupId": "demo_popup"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field_id": "demo_notes",
+      "type": "text",
+      "part": "Classic Panel",
+      "label_name": "Classic Panel Field",
+      "default_input": "",
+      "placeholder": "Nothing here references this field, so it renders as a normal part panel after the cards."
+    },
+    {
+      "field_id": "demo_tail",
+      "type": "text",
+      "part": "Classic Panel",
+      "label_name": "Trailing Panel Field",
+      "default_input": "",
+      "placeholder": "Second standalone field in the same part panel."
+    }
+  ]
+}

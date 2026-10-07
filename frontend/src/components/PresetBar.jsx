@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useModal } from "../contexts/ModalContext.jsx";
+import EmojiText from "./common/EmojiText.jsx";
 import { showToast } from "../utils/platform/toast.js";
 
 export default function PresetBar({ tool, call, collect, apply, reset }) {
@@ -91,10 +92,10 @@ export default function PresetBar({ tool, call, collect, apply, reset }) {
         Save As...
       </button>
       <button type="button" className="btn" onClick={handleReset}>
-        ↺ Reset Fields
+        ↺ <EmojiText text="Reset Fields" />
       </button>
       <button type="button" className="btn danger" onClick={handleDelete} disabled={busy || !selected}>
-        ✕ Delete
+        ✕ <EmojiText text="Delete" />
       </button>
     </div>
   );

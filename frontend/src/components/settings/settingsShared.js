@@ -3,6 +3,7 @@ export const DEFAULT_SETTINGS = {
   ffmpeg: { path: "", use_system_path: true },
   color_picking: { max_recents: 25, default_format: "rgb" },
   general: { theme: "", allow_internet: false, check_updates_automatically: false },
+  python_libraries: { local_only: true },
 };
 
 // Mirror keys read by ColorPickerModal when it opens.

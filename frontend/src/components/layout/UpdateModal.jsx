@@ -53,7 +53,7 @@ export default function UpdateModal({ info = {}, call, onClose }) {
             <Icon name="github" />
             Open GitHub Releases
           </button>
-          <button type="button" className="btn ghost" onClick={onClose}>Okay</button>
+          <button type="button" className="btn ghost" onClick={onClose}>Remind me later</button>
         </div>
       </div>
     </div>

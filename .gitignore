@@ -62,3 +62,6 @@ utilities/utilities_cache.json
 utilities/util_lists_cache-lock.json
 userdata/mods_cache.json
 userdata/util_lists_cache-lock.json
+
+# --- Generated utility icon mirrors (scanner-synced, never committed) --------
+frontend/public/assets/.cache/

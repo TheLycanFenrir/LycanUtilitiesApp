@@ -5,26 +5,27 @@ import { ToastProvider } from "../../contexts/ToastContext.jsx";
 import { ModalProvider } from "../../contexts/ModalContext.jsx";
 import { showToast } from "../../utils/platform/toast.js";
 import Topbar from "./Topbar.jsx";
+import UtilitiesWatcher from "./UtilitiesWatcher.jsx";
 import ZoomDropdown from "./ZoomDropdown.jsx";
 import Statusbar from "./Statusbar.jsx";
 import AboutModal from "./AboutModal.jsx";
 import UpdateModal from "./UpdateModal.jsx";
 import SettingsPanel from "../SettingsPanel.jsx";
 import EasterEggPeek from "../EasterEggPeek.jsx";
-import useCyanPulse from "../../hooks/useCyanPulse.js";
+import useBluePulse from "../../hooks/useCyanPulse.js";
 
-function AppFrame({ call, app, cpuName, goHome, onFocusTool, onEditJob, openAbout, aboutVisible, closeAbout, openSettings, settingsVisible, settingsSection, closeSettings, onCheckUpdates, children }) {
+function AppFrame({ call, app, cpuName, goHome, onFocusTool, onEditJob, openAbout, aboutVisible, closeAbout, openSettings, settingsVisible, settingsSection, closeSettings, onCheckUpdates, storeOpen, onStoreOpenChange, storeSearchQuery, children }) {
   const { zoom } = useZoom();
   const [isPeeking, setIsPeeking] = useState(false);
   const startPeek = useCallback(() => setIsPeeking(true), []);
   const stopPeek = useCallback(() => setIsPeeking(false), []);
   const hidden = isPeeking ? " content-hidden" : "";
   const frameRef = useRef(null);
-  useCyanPulse(frameRef, "frame");
+  useBluePulse(frameRef, "frame");
   return (
     <>
       <div ref={frameRef} className={"app-frame-border" + hidden} aria-hidden="true"></div>
-      <Topbar call={call} app={app} goHome={goHome} onFocusTool={onFocusTool} onEditJob={onEditJob} openAbout={openAbout} openSettings={openSettings} onCheckUpdates={onCheckUpdates} hidden={isPeeking} />
+      <Topbar call={call} app={app} goHome={goHome} onFocusTool={onFocusTool} onEditJob={onEditJob} openAbout={openAbout} openSettings={openSettings} onCheckUpdates={onCheckUpdates} hidden={isPeeking} storeOpen={storeOpen} onStoreOpenChange={onStoreOpenChange} storeSearchQuery={storeSearchQuery} />
       <div id="app-layout" className={isPeeking ? "content-hidden" : undefined} style={{ zoom: zoom / 100 }}>
         <main className="view">{children}</main>
       </div>
@@ -37,7 +38,7 @@ function AppFrame({ call, app, cpuName, goHome, onFocusTool, onEditJob, openAbou
   );
 }
 
-export default function Shell({ call, app, cpuName, goHome, onFocusTool, onEditJob, children }) {
+export default function Shell({ call, app, cpuName, goHome, onFocusTool, onEditJob, children, storeOpen, onStoreOpenChange, storeSearchQuery }) {
   const [aboutVisible, setAboutVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [settingsSection, setSettingsSection] = useState("ffmpeg");
@@ -78,7 +79,9 @@ export default function Shell({ call, app, cpuName, goHome, onFocusTool, onEditJ
 
   useEffect(() => {
     let cancelled = false;
-    const autoCheck = async () => {
+    let attempts = 0;
+    let timer = null;
+    const runCheck = async () => {
       const settings = await call("get_app_settings");
       if (cancelled) return;
       const general = (settings && settings.general) || {};
@@ -87,9 +90,23 @@ export default function Shell({ call, app, cpuName, goHome, onFocusTool, onEditJ
       if (cancelled || !res || res.ok !== true || !res.update_available) return;
       setUpdateInfo(res);
     };
-    autoCheck();
+    // The bridge (window.pywebview.api) may not be injected yet when this
+    // effect first runs right after the window opens. Retry briefly so the
+    // automatic check actually fires on relaunch instead of silently no-opping.
+    const tryCheck = () => {
+      if (cancelled) return;
+      if (window.pywebview && window.pywebview.api) {
+        runCheck();
+        return;
+      }
+      if (attempts >= 20) return;
+      attempts += 1;
+      timer = setTimeout(tryCheck, 500);
+    };
+    tryCheck();
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [call]);
 
@@ -99,9 +116,11 @@ export default function Shell({ call, app, cpuName, goHome, onFocusTool, onEditJ
 <ToastProvider
             onAction={(kind) => {
               if (kind === "open-settings") openSettings("ffmpeg");
+              if (kind === "restart-app") call("restart_app");
             }}
           >
             <ModalProvider>
+              <UtilitiesWatcher />
               <AppFrame
                 call={call}
                 app={app}
@@ -117,6 +136,9 @@ export default function Shell({ call, app, cpuName, goHome, onFocusTool, onEditJ
                 settingsSection={settingsSection}
                 closeSettings={closeSettings}
                 onCheckUpdates={() => runUpdateCheck("manual")}
+                storeOpen={storeOpen}
+                onStoreOpenChange={onStoreOpenChange}
+                storeSearchQuery={storeSearchQuery}
               >
                 {children}
               </AppFrame>

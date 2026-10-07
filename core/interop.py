@@ -119,6 +119,23 @@ class InteropContext:
         )
         return {"ok": True}
 
+    def send_ui_action(self, action_id: str, params: Any = None) -> dict:
+        """Push a UI action to the live front-end action layer.
+
+        The React side registers action handlers (``uiActions.js``); the
+        runtime keeps a neutral string/JSON contract so neither Lua nor Python
+        hooks need to know anything about the UI beyond an action id. When no
+        native window is attached the action is simply skipped.
+        """
+        payload = {} if params is None else params
+        if not isinstance(payload, dict):
+            return {"ok": False, "reason": "expected_object"}
+        self._api._push_form_js(
+            f"window.__lycanForm && window.__lycanForm.invoke_ui_action("
+            f"{self._api._js_str(str(action_id))}, {self._api._js_value(payload)})"
+        )
+        return {"ok": True}
+
     # ------------------------------------------------------------------ #
     #  String validation & sanitization
     # ------------------------------------------------------------------ #
@@ -282,6 +299,40 @@ class InteropContext:
 
     def project_root(self) -> str:
         return self._asset_root
+
+    def get_app_setting(self, key: Any = None):
+        """Return the app-level settings document (or one of its sections).
+
+        Exposes app configuration (FFmpeg binary, theme, ...) to runtimes that
+        need to resolve external tooling, e.g. a Lua hook locating FFmpeg the
+        same way the Python engine does.
+        """
+        try:
+            from app.settings import load_app_settings
+            data = load_app_settings() or {}
+        except Exception:
+            data = {}
+        if key is None:
+            return data
+        if isinstance(key, list) and all(isinstance(item, str) for item in key):
+            value = data
+            for part in key:
+                if not isinstance(value, dict) or part not in value:
+                    return None
+                value = value[part]
+            return value
+        if isinstance(key, str):
+            return data.get(key)
+        return None
+
+    @staticmethod
+    def available_cores() -> int:
+        """Total logical CPU cores of this machine."""
+        try:
+            from app.system import get_available_cores
+            return int(get_available_cores() or 1)
+        except Exception:
+            return 1
 
     @staticmethod
     def _coerce_cmd(cmd_table: Any) -> List[str]:

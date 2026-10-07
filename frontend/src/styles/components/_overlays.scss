@@ -64,6 +64,29 @@
 .modal-input:focus { outline: none; border-color: var(--accent); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
+// ---------------- JSON-driven UI popups ----------------
+
+// Popups reuse the generic modal classes; these rules polish the JSON-driven
+// declarative popups (PopupGenerator) and the section container areas.
+.modal-overlay > .modal {
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+}
+.modal-overlay[hidden] { display: none; }
+
+// Section container areas (SectionGenerator header/actions/footer).
+.lyc-section-header,
+.lyc-section-actions,
+.lyc-section-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.lyc-section-header { margin-bottom: 12px; }
+.lyc-section-actions, .lyc-section-footer { margin-top: 12px; }
+.lyc-section-body { min-width: 0; }
+
 // ---------------- update modal ----------------
 
 .update-modal {
@@ -173,10 +196,10 @@
   letter-spacing: .5px;
   color: #ffffff;
   -webkit-text-stroke-width: 1px;
-  -webkit-text-stroke-color: #{$logo-cyan};
+  -webkit-text-stroke-color: #{$logo-blue};
   text-shadow:
-    0 0 6px rgba(0, 255, 255, .5),
-    0 0 16px rgba(0, 255, 255, .3);
+    0 0 6px #{$logo-blue-high-transparent},
+    0 0 16px #{$logo-blue-transparent};
 }
 .about-version-line {
   display: flex;

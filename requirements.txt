@@ -3,3 +3,7 @@ pillow==12.3.0
 numpy==2.5.3
 psutil==7.2.2
 imageio==2.37.4
+# PyPI package discovery/search engine for the Python Libraries store (LMDB-cached simple index + metadata).
+pypi-search-caching==0.0.5a1
+# Vulnerability scanning for the Python Libraries store (OSV/PyPI advisory database, used before installs and by the auto scan).
+pip-audit==2.10.1

@@ -2,6 +2,8 @@
   "id": "texture_mipmap",
   "title": "Texture Mipmap Generator",
   "description": "Generate mipmap chains for DDS and other texture workflows.",
+  "python_requirements": ["Pillow", "numpy"],
+  "additional_requirements": [],
   "version": "1.0.0",
   "icon": "🧊",
   "icon_file": "assets/icons/texture_mipmap_generator.png",

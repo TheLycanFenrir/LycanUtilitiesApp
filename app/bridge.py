@@ -23,6 +23,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -35,7 +36,13 @@ from typing import Any, Optional
 import psutil
 
 from core.interop import InteropContext, InteropError
-from core.scanner import load_utilities as _scan_utilities, descriptor as _util_descriptor
+from core.lua_bridge import run_lua_script, run_lua_action
+from core.scanner import (
+    load_utilities as _scan_utilities,
+    descriptor as _util_descriptor,
+    UTILITIES_DIR as _UTILITIES_DIR,
+    ICON_TARGET_DIR as _FRONTEND_ICON_DIR,
+)
 from app.settings import (
     load_settings, save_settings, load_presets, save_presets,
     get_history, add_to_history, generate_unique_preset_name,
@@ -44,6 +51,7 @@ from app.settings import (
     load_app_settings, save_app_settings,
     get_storage_stats, clear_all_data, clear_all_presets, clear_all_history,
     load_worker_queue, save_worker_queue,
+    get_store_fetchres_path, get_store_icons_dir,
 )
 from app.system import (
     get_dropdown_core_options, get_cpu_name,
@@ -51,6 +59,23 @@ from app.system import (
 )
 from app.info import APP_TITLE, APP_SUBTITLE, MAIN_CONTRIBUTOR, VERSION, HOME_VIEW_ID, GITHUB_REPOSITORY_URL
 from app.updates import check_for_updates as run_update_check
+from app.python_libraries import (
+    python_environment as _py_environment,
+    pypi_search as _pypi_search,
+    pypi_install as _pypi_install,
+    pypi_uninstall as _pypi_uninstall,
+    refresh_pypi_index as _refresh_pypi_index,
+    utility_dependencies as _utility_dependencies,
+    pypi_progress as _pypi_progress,
+    python_audit as _pypi_audit,
+)
+
+# The Lycan Utilities Store catalog is NOT hardcoded: it is sourced from the
+# persisted fetch-result file (userdata/lycan_utilities_store/lycan_utilities_store_fetchres.json)
+# which the online loader rebuilds from each utility folder's manifest,
+# utility_description.json and synced icon. On offline reads the same file
+# becomes the source of truth so the UI always has a real fetch artifact.
+_STORE_FREE_MARKET = True
 
 
 _IMAGE_FILE_TYPES = ("Images (*.png;*.jpg;*.jpeg;*.webp;*.tga;*.tiff;*.bmp)",)
@@ -146,6 +171,17 @@ class Api:
         # Modular hub: utilities scanned from utilities/ (validated + SHA-256 cached).
         self._utilities_scan = _scan_utilities()
         self._utilities: dict[str, dict] = self._utilities_scan.get("utilities") or {}
+        # Utilities that failed validation/loading, surfaced as dashboard error
+        # cards that open the load-error tab.
+        self._utilities_broken: dict[str, dict] = self._utilities_scan.get("broken") or {}
+        # Live-reload baseline of the utilities folder. When the folder, a .py
+        # file changes a restart is needed; json/lua/asset changes only need a
+        # hard refresh (backend rescans + frontend reloads). The baseline is
+        # re-snapshot after every refresh-class rescan so the scanner's own
+        # cache writes never re-trigger a reload loop.
+        self._utils_baseline = self._snapshot_utilities_dir()
+        self._utils_restart_pending = False
+        self._utils_change_lock = Lock()
         # Per-utility engine modules (named "engine" inside each utility folder).
         # Loaded once per utility; sys.modules["engine"] is temporarily bound to
         # the right one while its runtime executes, then restored.
@@ -266,6 +302,7 @@ class Api:
             item["last_used"] = last_used.get(mid)
             item["coming_soon"] = not bool(desc.get("has_runtime"))
             tools.append(item)
+        tools.extend(self._broken_descriptors())
         system = self.get_system_stats()
         return {
             "tools": tools,
@@ -273,6 +310,342 @@ class Api:
             "app": self.get_app(),
             "cpu_name": system["cpu_name"],
         }
+
+    # ------------------------------------------------------------------ #
+    #  Utilities folder: open, live-reload watcher
+    # ------------------------------------------------------------------ #
+    _UTIL_IGNORED = {"utilities_cache.json", "util_lists_cache-lock.json"}
+
+    def open_utilities_folder(self, utility_id: str = "") -> dict:
+        """Reveal the utilities folder — or one utility's folder — in the OS
+        file explorer. Pass ``utility_id`` to land directly inside that
+        utility's module directory instead of the utilities root."""
+        if not _UTILITIES_DIR or not os.path.isdir(_UTILITIES_DIR):
+            return {"ok": False, "reason": "not_found", "path": _UTILITIES_DIR}
+        if utility_id:
+            resolved = self._resolve_utility_dir(str(utility_id))
+            if resolved and os.path.isdir(resolved):
+                self._open_explorer(resolved)
+                return {"ok": True, "path": resolved}
+        self._open_explorer(_UTILITIES_DIR)
+        return {"ok": True, "path": _UTILITIES_DIR}
+
+    def _resolve_utility_dir(self, utility_id: str) -> str | None:
+        """Return the module directory for a utility id (installed or broken)."""
+        entry = self._utilities.get(utility_id)
+        if isinstance(entry, dict) and entry.get("dir"):
+            return str(entry["dir"])
+        broken = self._utilities_broken.get(utility_id)
+        if isinstance(broken, dict) and broken.get("dir"):
+            return str(broken["dir"])
+        return None
+
+    def _broken_descriptors(self) -> list[dict]:
+        """Dashboard cards for utilities that failed to load (load-error tab)."""
+        result = []
+        for mid, entry in self._utilities_broken.items():
+            result.append({
+                "id": entry.get("id") or mid,
+                "title": entry.get("title") or mid,
+                "description": "This utility failed to load. Open it to see the parser errors.",
+                "icon": "\u26a0\ufe0f",
+                "icon_file": "",
+                "badge": "Error",
+                "tags": [],
+                "version": "",
+                "form_schema": None,
+                "has_runtime": False,
+                "runtime_file": None,
+                "coming_soon": False,
+                "favorite": False,
+                "last_used": None,
+                "has_error": True,
+                "error_messages": list(entry.get("errors") or []),
+                "error_file": str(entry.get("source") or ""),
+                "error_snippet": list(entry.get("snippet") or []),
+                "error_snippet_lines": list(entry.get("snippet_lines") or []),
+            })
+        return result
+
+    # ------------------------------------------------------------------ #
+    #  Lycan Utilities Store
+    # ------------------------------------------------------------------ #
+    def _store_installed_ids(self) -> set[str]:
+        """Ids that are locally installed (valid utilities in utilities/)."""
+        return set(self._utilities.keys())
+
+    @staticmethod
+    def _store_load_json(path: str):
+        """Best-effort JSON read for store data (manifest/description/fetchres)."""
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                return json.load(fh)
+        except (OSError, ValueError):
+            return None
+
+    @staticmethod
+    def _store_load_manifest(module_dir: str) -> dict:
+        """Read a utility manifest.json for the store catalog (broken ones ignored)."""
+        data = Api._store_load_json(os.path.join(module_dir, "manifest.json"))
+        return data if isinstance(data, dict) else {}
+
+    def _store_load_description(self, folder: str) -> dict:
+        """Read utilities/<folder>/utility_description.json for the store listing."""
+        if not _UTILITIES_DIR:
+            return {}
+        data = self._store_load_json(os.path.join(_UTILITIES_DIR, folder, "utility_description.json"))
+        return data if isinstance(data, dict) else {}
+
+    def _store_sync_icons(self, items: list[dict]) -> None:
+        """Mirror each utility's icon into the store's userdata icons folder.
+
+        Icons are sourced from the scanner-synced frontend mirror
+        (frontend/public/assets/.cache/icons) and copied into
+        userdata/lycan_utilities_store/icons/<id><ext> so the store keeps its
+        own persisted icon store (no heroicon names anywhere).
+        """
+        icons_dir = get_store_icons_dir()
+        try:
+            os.makedirs(icons_dir, exist_ok=True)
+        except OSError:
+            return
+        for item in items:
+            icon = item.get("icon") or ""
+            if not icon.startswith("assets/"):
+                continue
+            src = os.path.join(_FRONTEND_ICON_DIR, os.path.basename(icon))
+            if not os.path.isfile(src):
+                continue
+            ext = os.path.splitext(src)[1] or ".png"
+            target = os.path.join(icons_dir, str(item["id"]) + ext)
+            try:
+                if not os.path.exists(target):
+                    shutil.copy2(src, target)
+            except OSError:
+                continue
+
+    def _store_fetch_items(self) -> list[dict]:
+        """Build the store catalog from the real utilities directory.
+
+        Each entry merges the utility's manifest.json with its
+        ``utility_description.json`` (when present) and the scanner-synced
+        icon path. This is the data that gets persisted as the fetch result.
+        """
+        items: list[dict] = []
+        if not _UTILITIES_DIR or not os.path.isdir(_UTILITIES_DIR):
+            return items
+        installed = self._store_installed_ids()
+        for name in sorted(os.listdir(_UTILITIES_DIR)):
+            module_dir = os.path.join(_UTILITIES_DIR, name)
+            if not os.path.isdir(module_dir):
+                continue
+            manifest = self._store_load_manifest(module_dir)
+            description = self._store_load_description(name)
+            mid = str(manifest.get("id") or name)
+            descriptor = self._utilities.get(mid) or {}
+            items.append({
+                "id": mid,
+                "title": description.get("title") or manifest.get("title") or mid,
+                "description": description.get("description") or manifest.get("description") or "",
+                "icon": descriptor.get("icon_rel") or "",
+                "version": str(manifest.get("version") or "1.0.0"),
+                "credits": description.get("credits") or "Lycan Utilities",
+                "size_estimate": description.get("size_estimate") or "~2 MB",
+                "installed": mid in installed,
+            })
+        return items
+
+    def _store_write_fetchres(self, payload: dict) -> None:
+        """Persist the fetched catalog to userdata/lycan_utilities_store/."""
+        try:
+            os.makedirs(os.path.dirname(get_store_fetchres_path()), exist_ok=True)
+            with open(get_store_fetchres_path(), "w", encoding="utf-8") as fh:
+                json.dump(payload, fh, indent=2)
+        except OSError:
+            # Persistence is best-effort; a failing disk never blocks the store UI.
+            pass
+
+    def _store_read_fetchres(self) -> dict:
+        """Load the last fetched catalog snapshot from disk (may be {}})."""
+        if not os.path.isfile(get_store_fetchres_path()):
+            return {}
+        data = self._store_load_json(get_store_fetchres_path())
+        return data if isinstance(data, dict) else {}
+
+    def get_utilities_store(self) -> dict:
+        """Return the Lycan Utilities Store catalog.
+
+        * Online fetch (``general.allow_internet``): the catalog is rebuilt
+          from utilities/ folders plus their utility_description.json files,
+          icons are mirrored into userdata/lycan_utilities_store/icons/, and
+          the result is persisted to ``lycan_utilities_store_fetchres.json``.
+        * Offline: the last persisted fetch-result is used and filtered to
+          locally installed utilities (no download).
+        """
+        general = (load_app_settings().get("general") or {})
+        internet = bool(general.get("allow_internet", False))
+        installed = self._store_installed_ids()
+
+        if internet:
+            items = self._store_fetch_items()
+            self._store_sync_icons(items)
+            previous = self._store_read_fetchres()
+            payload = {
+                "ok": True,
+                "internet": True,
+                "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "items": items,
+                "actions": previous.get("actions") or [],
+            }
+            self._store_write_fetchres(payload)
+            return payload
+
+        payload = self._store_read_fetchres()
+        items = [entry for entry in payload.get("items") or [] if entry.get("id") in installed]
+        return {
+            "ok": True,
+            "internet": False,
+            "fetched_at": payload.get("fetched_at") or "",
+            "items": items,
+        }
+
+    def store_download(self, item_id: str) -> dict:
+        """Simulate downloading/updating a store utility.
+
+        This is a demo store; the action is recorded in the persisted fetch
+        result and reported back. Downloads require internet access.
+        """
+        general = (load_app_settings().get("general") or {})
+        if not general.get("allow_internet", False):
+            return {"ok": False, "reason": "internet_disabled"}
+        entry = next((e for e in self._store_fetch_items() if e["id"] == item_id), None)
+        if not entry:
+            return {"ok": False, "reason": "not_found"}
+        existing = self._store_read_fetchres()
+        installed = self._store_installed_ids()
+        is_update = item_id in installed
+        actions = list(existing.get("actions") or [])
+        actions.append({
+            "item_id": item_id,
+            "action": "update" if is_update else "download",
+            "at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        })
+        if len(actions) > 50:
+            actions = actions[-50:]
+        existing["actions"] = actions
+        self._store_write_fetchres(dict(existing))
+        return {
+            "ok": True,
+            "item_id": item_id,
+            "action": "update" if is_update else "download",
+            "free": bool(_STORE_FREE_MARKET),
+            "version": entry.get("version"),
+        }
+
+    def store_learn_more(self, item_id: str) -> dict:
+        """Return the full details card for a store item from real catalog data."""
+        entry = next((e for e in self._store_fetch_items() if e["id"] == item_id), None)
+        if not entry:
+            return {"ok": False, "reason": "not_found"}
+        return {
+            "ok": True,
+            "title": entry["title"],
+            "description": entry["description"],
+            "version": entry["version"],
+            "free": bool(_STORE_FREE_MARKET),
+            "credits": entry.get("credits") or "Lycan Utilities",
+            "size_estimate": entry.get("size_estimate") or "~2 MB",
+        }
+
+    @staticmethod
+    def _snapshot_utilities_dir() -> dict:
+        """Cheap mtime+size snapshot of every module file under utilities/.
+
+        The two scanner cache files and Python bytecode are excluded so the
+        scanner writing its own cache can never be mistaken for a user change.
+        """
+        folders: set[str] = set()
+        files: dict[str, tuple] = {}
+        if not _UTILITIES_DIR or not os.path.isdir(_UTILITIES_DIR):
+            return {"folders": folders, "files": files}
+        for name in sorted(os.listdir(_UTILITIES_DIR)):
+            module_dir = os.path.join(_UTILITIES_DIR, name)
+            if not os.path.isdir(module_dir):
+                continue
+            folders.add(name)
+            for root, dirs, names in os.walk(module_dir):
+                dirs[:] = [d for d in dirs if d != "__pycache__"]
+                for fname in names:
+                    if fname.endswith(".pyc"):
+                        continue
+                    rel = os.path.relpath(os.path.join(root, fname), _UTILITIES_DIR)
+                    if rel.replace("\\", "/") in Api._UTIL_IGNORED:
+                        continue
+                    try:
+                        st = os.stat(os.path.join(root, fname))
+                        files[rel] = (st.st_mtime_ns, st.st_size)
+                    except OSError:
+                        continue
+        return {"folders": folders, "files": files}
+
+    @staticmethod
+    def _diff_utilities(before: dict, after: dict) -> list[dict]:
+        changes: list[dict] = []
+        old_folders = set(before.get("folders") or [])
+        new_folders = set(after.get("folders") or [])
+        old_files = before.get("files") or {}
+        new_files = after.get("files") or {}
+        for name in sorted(new_folders - old_folders):
+            changes.append({"path": name + os.sep, "kind": "add", "cause": "folder"})
+        for name in sorted(old_folders - new_folders):
+            changes.append({"path": name + os.sep, "kind": "remove", "cause": "folder"})
+        for rel in sorted(set(old_files) | set(new_files)):
+            before_stat = old_files.get(rel)
+            after_stat = new_files.get(rel)
+            if before_stat == after_stat:
+                continue
+            kind = "modify" if before_stat is not None and after_stat is not None else (
+                "add" if before_stat is None else "remove"
+            )
+            ext = os.path.splitext(rel)[1].lower()
+            cause = ("py" if ext == ".py"
+                     else "lua" if ext == ".lua"
+                     else "json" if ext == ".json"
+                     else "asset")
+            changes.append({"path": rel, "kind": kind, "cause": cause})
+        return changes[:40]
+
+    def utilities_changes(self) -> dict:
+        """Poll the utilities folder and classify what changed.
+
+        Returns ``{action: None|"restart"|"refresh", changes:[...]}``. New
+        utility folders and ``.py`` edits require an app restart; json/lua/asset
+        updates only need a backend rescan plus a frontend hard refresh. The
+        baseline is advanced inside this call for refresh-class changes, so the
+        scanner's own cache rewrite never causes a reload loop.
+        """
+        with self._utils_change_lock:
+            current = self._snapshot_utilities_dir()
+            changes = self._diff_utilities(self._utils_baseline, current)
+            if not changes:
+                return {"action": None, "changes": []}
+            requires_restart = self._utils_restart_pending or any(
+                (c["kind"] == "add" and c["cause"] == "folder") or c["cause"] == "py"
+                for c in changes
+            )
+            if requires_restart:
+                self._utils_restart_pending = True
+                return {"action": "restart", "changes": changes}
+            # Refresh-class only: rescan now so the reloaded frontend sees the
+            # new manifest/schema/icons, then re-baseline post-rescan.
+            try:
+                self._utilities_scan = _scan_utilities(force_scan=True)
+                self._utilities = self._utilities_scan.get("utilities") or {}
+                self._utilities_broken = self._utilities_scan.get("broken") or {}
+            except Exception:
+                traceback.print_exc()
+            self._utils_baseline = self._snapshot_utilities_dir()
+            return {"action": "refresh", "changes": changes}
 
     def open_tool(self, tool_id: str) -> dict:
         record_used(tool_id)
@@ -382,6 +755,102 @@ class Api:
     def detect_ffmpeg(self) -> dict:
         """Scan PATH + common install roots for FFmpeg binaries."""
         return detect_ffmpeg_binaries()
+
+    # ------------------------------------------------------------------ #
+    #  Python Libraries (Settings store + pip management)
+    # ------------------------------------------------------------------ #
+    def get_python_libraries(self, force: bool = False) -> dict:
+        """Settings > Python Libraries: interpreter info and per-utility deps.
+
+        The dependency status is cached (see ``utility_dependencies``) so
+        reopening or switching away from the category reuses the last fetch;
+        pass ``force=True`` right after an install/uninstall to recompute.
+        """
+        try:
+            env = _py_environment()
+        except Exception as exc:
+            env = {"ok": False, "reason": str(exc)}
+        try:
+            utilities = _utility_dependencies(self._utilities, force=bool(force))
+        except Exception as exc:
+            utilities = [{"error": str(exc)}]
+        return {
+            "ok": True,
+            "environment": env,
+            "utilities": utilities,
+        }
+
+    def get_pypi_progress(self) -> Optional[dict]:
+        """Live progress of the current pip install/uninstall, if any."""
+        try:
+            return _pypi_progress()
+        except Exception:
+            return None
+
+    def pypi_audit(self, force: bool = False) -> dict:
+        """Settings > Python Libraries: re-run the vulnerability scan.
+
+        Audits every installed package via pip-audit against the OSV/PyPI
+        advisory database and returns ``{ok, state, total, affected,
+        fetched_at}``. ``force=True`` bypasses the snapshot cache (the UI's
+        "Scan now" button).
+        """
+        try:
+            return _pypi_audit(force=bool(force))
+        except Exception as exc:
+            return {"ok": False, "state": "failed", "reason": str(exc)}
+
+    def pypi_search(self, query: str, page: int = 1, per_page: int = 12,
+                    force: bool = False) -> dict:
+        """Search the cached PyPI Simple index; one enriched page of results.
+
+        ``force=True`` bypasses the result snapshot cache (used after
+        install/uninstall so installed/outdated badges refresh).
+        """
+        try:
+            return _pypi_search(str(query), page, per_page, force=bool(force))
+        except Exception as exc:
+            return {"ok": False, "reason": str(exc)}
+
+    def refresh_pypi_index(self, force: bool = True) -> dict:
+        """Download/refresh the official PyPI Simple index cache used by search."""
+        try:
+            return _refresh_pypi_index(force=bool(force))
+        except Exception as exc:
+            return {"ok": False, "reason": str(exc)}
+
+    def pypi_install(self, package: str, scope: str = "local",
+                     upgrade: bool = False, confirmed: bool = False,
+                     batch_total: int = 1, batch_done: int = 0,
+                     vuln_ack: bool = False) -> dict:
+        """Install/upgrade a Python package via pip.
+
+        * scope local (default): the app's own .venv (immediately importable).
+        * scope global: the base/system interpreter (requires ``confirmed``).
+        * batch_total/batch_done: overall progress across a bulk install.
+        * vuln_ack: the candidate was pre-scanned with pip-audit and the user
+          confirmed the two-step "Proceed anyway?" prompt.
+        """
+        try:
+            return _pypi_install(str(package), scope=str(scope),
+                                 upgrade=bool(upgrade), confirmed=bool(confirmed),
+                                 batch_total=int(batch_total or 1),
+                                 batch_done=int(batch_done or 0),
+                                 vuln_ack=bool(vuln_ack))
+        except Exception as exc:
+            return {"ok": False, "reason": str(exc)}
+
+    def pypi_uninstall(self, package: str, scope: str = "local",
+                       confirmed: bool = False, batch_total: int = 1,
+                       batch_done: int = 0) -> dict:
+        """Uninstall a Python package via pip (core app packages are protected)."""
+        try:
+            return _pypi_uninstall(str(package), scope=str(scope),
+                                   confirmed=bool(confirmed),
+                                   batch_total=int(batch_total or 1),
+                                   batch_done=int(batch_done or 0))
+        except Exception as exc:
+            return {"ok": False, "reason": str(exc)}
 
     # ------------------------------------------------------------------ #
     #  Native dialogs
@@ -508,60 +977,35 @@ class Api:
             self._done(job, False, "Runtime unavailable.", "utility missing runtime")
             return
         module_dir = util.get("dir")
-        runtime_path = os.path.join(module_dir, util.get("runtime_path") or "runtime.py")
-        added_path = False
-        engine_mod = None
-        try:
-            # The runtime imports its engine/settings straight from its own
-            # utility folder; make that folder importable, then remove it so we
-            # never hijack names for other utilities.
-            norm = os.path.normpath(module_dir)
-            if norm and norm not in sys.path:
-                sys.path.insert(0, norm)
-                added_path = True
-            spec = importlib.util.spec_from_file_location(f"util_{job.tool}", runtime_path)
-            if spec is None or spec.loader is None:
-                raise RuntimeError(f"Could not load {runtime_path}")
-            module = importlib.util.module_from_spec(spec)
-            with self._util_engine_lock:
-                saved_engine = sys.modules.get("engine")
-                try:
-                    # Point the shared "engine" import name at this utility's
-                    # engine while its runtime imports it (helpers may also use
-                    # "engine" bound globals afterwards).
-                    engine_mod = self._load_engine_module(job.tool, module_dir)
-                    if engine_mod is not None:
-                        sys.modules["engine"] = engine_mod
-                    sys.modules[spec.name] = module
-                    spec.loader.exec_module(module)
-                finally:
-                    if saved_engine is not None:
-                        sys.modules["engine"] = saved_engine
-                    else:
-                        sys.modules.pop("engine", None)
-                    sys.modules.pop(spec.name, None)
-                runner = getattr(module, "run", None)
-                if not callable(runner):
-                    raise RuntimeError(f"{runtime_path} must define run(ctx)")
+        handlers = (util.get("manifest") or {}).get("handlers") or {}
+        result = None
+        lua_name = handlers.get("lua")
+        # Prefer the Lua hook when it is bound and a Lua runtime is loadable.
+        if lua_name and isinstance(lua_name, str) and lua_name:
+            lua_path = os.path.join(module_dir, lua_name)
+            if os.path.isfile(lua_path):
                 ctx = InteropContext(self, job, params)
-                result = runner(ctx)
-        except InteropError as exc:
-            # Intentional halt; the context already logged + set the header.
-            if not job.finished:
-                self._done(job, False, str(exc), str(exc))
-            return
-        except Exception as exc:
-            traceback.print_exc()
-            self._log(job, f"Utility runtime crashed: {exc}", "error")
-            if not job.finished:
-                self._done(job, False, "Runtime crashed.", str(exc) or "utility error")
-            return
-        finally:
-            if added_path:
-                try:
-                    sys.path.remove(norm)
-                except ValueError:
-                    pass
+                cr = run_lua_script(ctx, lua_path)
+                if cr.get("ok"):
+                    result = cr.get("result")
+                elif cr.get("reason") == "lua_runtime_missing":
+                    self._log(job,
+                              f"Lua runtime missing; falling back to the Python hook "
+                              f"({util.get('runtime_path') or 'runtime.py'}).", "info")
+                else:
+                    # The Lua hook halted (throw_error already set status/logs).
+                    if not job.finished:
+                        reason = cr.get("reason") or "Lua hook failed."
+                        if cr.get("interop"):
+                            self._done(job, False, reason, reason)
+                        else:
+                            self._log(job, f"Lua hook failed: {reason}", "error")
+                            self._done(job, False, "Runtime crashed.", reason)
+                    return
+        if result is None:
+            result = self._run_python_hook(job, params, module_dir, util)
+            if result is None:
+                return
         if job.finished:
             return
         if job.abort_event.is_set():
@@ -578,6 +1022,56 @@ class Api:
         else:
             self._done(job, True, "Complete.")
 
+    def _run_python_hook(self, job: _Job, params: dict, module_dir: str, util: dict):
+        """Load and run the bound Python hook (``runtime.py``) of a utility."""
+        runtime_path = os.path.join(module_dir, util.get("runtime_path") or "runtime.py")
+        added_path = False
+        engine_mod = None
+        try:
+            norm = os.path.normpath(module_dir)
+            if norm and norm not in sys.path:
+                sys.path.insert(0, norm)
+                added_path = True
+            spec = importlib.util.spec_from_file_location(f"util_{job.tool}", runtime_path)
+            if spec is None or spec.loader is None:
+                raise RuntimeError(f"Could not load {runtime_path}")
+            module = importlib.util.module_from_spec(spec)
+            with self._util_engine_lock:
+                saved_engine = sys.modules.get("engine")
+                try:
+                    engine_mod = self._load_engine_module(job.tool, module_dir)
+                    if engine_mod is not None:
+                        sys.modules["engine"] = engine_mod
+                    sys.modules[spec.name] = module
+                    spec.loader.exec_module(module)
+                finally:
+                    if saved_engine is not None:
+                        sys.modules["engine"] = saved_engine
+                    else:
+                        sys.modules.pop("engine", None)
+                    sys.modules.pop(spec.name, None)
+                runner = getattr(module, "run", None)
+                if not callable(runner):
+                    raise RuntimeError(f"{runtime_path} must define run(ctx)")
+                ctx = InteropContext(self, job, params)
+                return runner(ctx)
+        except InteropError as exc:
+            if not job.finished:
+                self._done(job, False, str(exc), str(exc))
+            return None
+        except Exception as exc:
+            traceback.print_exc()
+            self._log(job, f"Utility runtime crashed: {exc}", "error")
+            if not job.finished:
+                self._done(job, False, "Runtime crashed.", str(exc) or "utility error")
+            return None
+        finally:
+            if added_path:
+                try:
+                    sys.path.remove(norm)
+                except ValueError:
+                    pass
+
     def get_tool_schema(self, tool_id: str) -> dict:
         util = self._utilities.get(tool_id)
         if not util:
@@ -590,6 +1084,107 @@ class Api:
             "has_runtime": bool(util.get("runtime_ok")),
             "runtime_file": util.get("runtime_path"),
         }
+
+    def ui_action(self, tool_id: str, action_id: str, params: Any = None) -> dict:
+        """Dispatch a UI action to a utility runtime's action handler.
+
+        Declarative UI nodes that carry an ``actionId`` route through the
+        frontend action layer (``uiActions.js``) to this bridge method. The
+        action is handed to the runtime's ``on_ui_action(ctx, action_id, params)``
+        hook — a Python ``runtime.py`` / ``engine.py`` function or a Lua
+        ``on_ui_action`` global — with an InteropContext bound to the tool's
+        live job when one exists, so calls like ``ctx.log`` / ``ctx.set_form_data``
+        still land in the active job. Return values and errors round-trip to
+        the awaiting Promise.
+        """
+        if not isinstance(action_id, str) or not action_id:
+            return {"ok": False, "reason": "invalid_action"}
+        util = self._utilities.get(str(tool_id))
+        if not util or not util.get("runtime_ok"):
+            return {"ok": False, "reason": "not_found"}
+        module_dir = util.get("dir")
+        handlers = (util.get("manifest") or {}).get("handlers") or {}
+        params = params if isinstance(params, dict) else {}
+
+        job = self._active_or_transient_job(str(tool_id))
+        ctx = InteropContext(self, job, job.params)
+        response = self._run_action_hook(str(tool_id), module_dir, util, handlers, ctx, action_id, params)
+        if isinstance(response, dict) and response.get("ok"):
+            return {"ok": True, "result": response.get("result")}
+        reason = "failed" if not isinstance(response, dict) else (response.get("reason") or "failed")
+        return {"ok": False, "reason": reason}
+
+    def _active_or_transient_job(self, tool: str) -> _Job:
+        """Reuse a tool's live job as the action context, else a transient one.
+
+        A transient ``_Job`` is never spawned or polled; it only gives the
+        InteropContext a place to log/confirm against when a page-level action
+        arrives before (or without) a running job.
+        """
+        with self._lock:
+            jid = self._recent_jobs.get(tool)
+            job = self._jobs.get(jid) if jid else None
+            if job is not None and not job.finished:
+                return job
+        return _Job(uuid.uuid4().hex, tool)
+
+    def _run_action_hook(self, tool: str, module_dir: str, util: dict, handlers: dict,
+                         ctx: InteropContext, action_id: str, params: dict) -> dict:
+        """Resolve a UI action through the tool's Lua and/or Python runtime."""
+        lua_name = handlers.get("lua")
+        if lua_name and isinstance(lua_name, str) and lua_name:
+            lua_path = os.path.join(module_dir, lua_name)
+            if os.path.isfile(lua_path):
+                cr = run_lua_action(ctx, lua_path, action_id, params)
+                if cr.get("ok"):
+                    return {"ok": True, "result": cr.get("result")}
+                if cr.get("reason") not in ("lua_runtime_missing", "no_ui_action_handler"):
+                    return cr
+        return self._run_python_action(tool, module_dir, util, ctx, action_id, params)
+
+    def _run_python_action(self, tool: str, module_dir: str, util: dict,
+                           ctx: InteropContext, action_id: str, params: dict) -> dict:
+        """Call ``on_ui_action(ctx, action_id, params)`` from the Python runtime."""
+        runtime_path = os.path.join(module_dir, util.get("runtime_path") or "runtime.py")
+        added_path = False
+        try:
+            norm = os.path.normpath(module_dir)
+            if norm and norm not in sys.path:
+                sys.path.insert(0, norm)
+                added_path = True
+            spec = importlib.util.spec_from_file_location(f"util_{tool}_action", runtime_path)
+            if spec is None or spec.loader is None:
+                return {"ok": False, "reason": "load_failed"}
+            module = importlib.util.module_from_spec(spec)
+            with self._util_engine_lock:
+                saved_engine = sys.modules.get("engine")
+                try:
+                    engine_mod = self._load_engine_module(tool, module_dir)
+                    if engine_mod is not None:
+                        sys.modules["engine"] = engine_mod
+                    sys.modules[spec.name] = module
+                    spec.loader.exec_module(module)
+                finally:
+                    if saved_engine is not None:
+                        sys.modules["engine"] = saved_engine
+                    else:
+                        sys.modules.pop("engine", None)
+                    sys.modules.pop(spec.name, None)
+                hook = getattr(module, "on_ui_action", None)
+                if not callable(hook):
+                    return {"ok": False, "reason": "no_ui_action_handler"}
+                return {"ok": True, "result": hook(ctx, action_id, params)}
+        except InteropError as exc:
+            return {"ok": False, "reason": str(exc), "interop": True}
+        except Exception as exc:
+            traceback.print_exc()
+            return {"ok": False, "reason": str(exc)}
+        finally:
+            if added_path:
+                try:
+                    sys.path.remove(norm)
+                except ValueError:
+                    pass
 
     @staticmethod
     def _js_str(value: str) -> str:

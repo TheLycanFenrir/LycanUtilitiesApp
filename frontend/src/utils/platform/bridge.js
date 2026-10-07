@@ -66,3 +66,11 @@ export async function restartApp(call) {
   }
   showToast("Restart App is only available in the desktop build.", "warn");
 }
+
+export async function openUtilitiesFolder(call) {
+  if (hasBridge()) {
+    const res = await call("open_utilities_folder");
+    if (res && res.ok) return;
+  }
+  showToast("Open Utilities Folder is only available in the desktop build.", "warn");
+}

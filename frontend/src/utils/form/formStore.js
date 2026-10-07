@@ -4,11 +4,18 @@
 // `window.__lycanForm` escape hatch, so runtime signals can mutate the active
 // form without any component coupling.
 
+import { invokeUiAction } from "../../components/FormGenerator/uiActions.js";
+
 const listeners = new Set();
 let fields = {}; // fieldId -> { schema, value, status, visible }
 let focusTick = { fieldId: null, n: 0 };
 let moduleId = null;
 let currentSnapshot = { fields, focusTick };
+
+const CONTAINER_TYPES = new Set(["section", "popup"]);
+function isContainerType(type) {
+  return typeof type === "string" && CONTAINER_TYPES.has(type);
+}
 
 function emit() {
   currentSnapshot = { fields, focusTick };
@@ -45,7 +52,10 @@ export function initForm(id, schemaFields) {
   moduleId = id;
   const next = {};
   for (const schema of schemaFields || []) {
-    if (schema && schema.field_id) next[schema.field_id] = buildEntry(schema);
+    // Card / section / popup entries are layout containers rendered by the
+    // generator tree; they never hold a value so they must not enter the field
+    // store (which would pollute getAllValues() / job parameters).
+    if (schema && schema.field_id && !isContainerType(schema.type)) next[schema.field_id] = buildEntry(schema);
   }
   fields = next;
   focusTick = { fieldId: null, n: 0 };
@@ -225,6 +235,7 @@ export function setFieldStatus(id, status) {
 
 export function registerGlobalBridge() {
   if (typeof window === "undefined" || window.__lycanForm) return;
+  const ui = { call: null, moduleId: () => moduleId };
   window.__lycanForm = {
     get_form_data: (field_id) => getFieldValue(field_id) ?? null,
     set_form_data: (field_id, value) => setFieldValue(field_id, value),
@@ -236,5 +247,6 @@ export function registerGlobalBridge() {
     unhide_field: (field_id) => unhideField(field_id),
     set_focus: (field_id) => setFocus(field_id),
     set_field_status: (field_id, status) => setFieldStatus(field_id, status),
+    invoke_ui_action: (action_id, params) => invokeUiAction(action_id, params, ui),
   };
 }

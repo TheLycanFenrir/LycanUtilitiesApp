@@ -1,0 +1,19 @@
+{
+  "description": "Invalid schema: the 'weird_field' uses an unsupported field type on purpose.",
+  "fields": [
+    {
+      "field_id": "weird_field",
+      "type": "video",
+      "part": "Broken",
+      "label_name": "Unsupported Control",
+      "default_input": ""
+    },
+    {
+      "field_id": "ok_field",
+      "type": "text",
+      "part": "Broken",
+      "label_name": "This One Is Fine",
+      "default_input": "hello"
+    }
+  ]
+}

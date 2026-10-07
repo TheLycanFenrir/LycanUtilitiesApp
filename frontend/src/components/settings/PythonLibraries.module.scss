@@ -1,0 +1,207 @@
+.envBox {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.envGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 12.5px;
+}
+
+.envKey {
+  color: var(--text-faint);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.envVal { color: var(--text-dim); min-width: 0; overflow-wrap: anywhere; }
+.envMono { color: var(--text-dim); font-family: Consolas, "Cascadia Mono", monospace; overflow-wrap: anywhere; }
+.envOk { color: var(--good); }
+.envWarn { color: var(--warn); }
+
+.banner {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+.banner svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--warn); }
+
+.notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+.notice svg { width: 16px; height: 16px; flex: none; margin-top: 1px; color: var(--warn); }
+
+.searchForm {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.searchForm input { flex: 1; min-width: 0; }
+.searchForm .btn { flex: none; }
+
+.searchHint { margin: 0 0 12px; font-size: 12px; color: var(--text-faint); line-height: 1.45; }
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.pagerBtns { display: flex; gap: 8px; }
+
+.resultList { margin-top: 12px; }
+
+.resultRow {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.resultTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.resultName { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.resultVer { font-size: 11.5px; color: var(--text-faint); margin-left: 8px; }
+.resultSummary { margin: 4px 0 0; font-size: 12px; color: var(--text-dim); line-height: 1.45; }
+.resultActions { display: flex; gap: 8px; flex: none; }
+
+.badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.badgeGood { background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); }
+.badgeWarn { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+.badgeBad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+.badgeDim { background: var(--panel-3); color: var(--text-faint); }
+
+.empty {
+  padding: 18px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  margin-top: 12px;
+}
+
+.depsBox { border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); overflow: hidden; }
+.depTool { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.depTool:last-child { border-bottom: none; }
+.depTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.depName { font-size: 13px; font-weight: 700; color: var(--text); }
+.depChips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.chip {
+  font-size: 11.5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: var(--panel-3);
+  font-weight: 600;
+}
+.chipOk { border-color: color-mix(in srgb, var(--good) 30%, transparent); color: var(--good); }
+.chipWarn { border-color: color-mix(in srgb, var(--warn) 30%, transparent); color: var(--warn); }
+.chipBad { border-color: color-mix(in srgb, var(--bad) 30%, transparent); color: var(--bad); }
+.depNone { font-size: 12px; color: var(--text-faint); font-style: italic; }
+.depNote { margin-left: 4px; font-weight: 400; color: var(--text-faint); }
+
+.mark { height: 18px; width: 18px; vertical-align: -4px; margin-right: 7px; }
+
+.progressBox {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 10px;
+  background: var(--panel-2);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.progressTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+}
+.progressTitle { font-weight: 700; color: var(--text); }
+.progressCount { color: var(--text-dim); font-weight: 600; }
+.progressPct { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.progressBar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--panel-3);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.progressBar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 70%, transparent), var(--accent));
+  transition: width 0.25s ease;
+}
+
+.progressStatus { margin-top: 7px; font-size: 11.5px; color: var(--text-faint); line-height: 1.4; }
+
+.envBad { color: var(--bad); font-weight: 700; }
+
+.scanRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.scanRow .btn { flex: none; }
+.scanRowHint { font-size: 11.5px; color: var(--text-faint); line-height: 1.4; }
+
+.vulnBadge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  vertical-align: 1px;
+  border: 1px solid color-mix(in srgb, var(--bad) 40%, transparent);
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+  color: var(--bad);
+  cursor: help;
+}

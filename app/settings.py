@@ -41,6 +41,31 @@ def get_lastused_path():
     return os.path.join(_get_userdata_dir(), 'lastused.json')
 
 
+def get_store_dir():
+    """Path to the Lycan Utilities Store data folder."""
+    return os.path.join(_get_userdata_dir(), 'lycan_utilities_store')
+
+
+def get_store_icons_dir():
+    """Path to the icons directory inside the Lycan Utilities Store folder."""
+    return os.path.join(get_store_dir(), 'icons')
+
+
+def get_store_fetchres_path():
+    """Path to the store fetch-result file written by the online loader."""
+    return os.path.join(get_store_dir(), 'lycan_utilities_store_fetchres.json')
+
+
+def get_python_libraries_cache_path():
+    """Path to the Settings > Python Libraries snapshot/cache file.
+
+    Holds the last search state (query/page), last index-fetch metadata and
+    last utility-dependencies snapshot, so reopening or switching away from
+    the category reuses cached data instead of re-fetching from PyPI.
+    """
+    return os.path.join(_get_userdata_dir(), 'python_libraries_cache.json')
+
+
 def _load_json(path, default):
     """Load JSON from disk, returning ``default`` if missing or corrupt."""
     try:
@@ -264,6 +289,11 @@ DEFAULT_APP_SETTINGS = {
         "allow_internet": False,
         "check_updates_automatically": False,
     },
+    "python_libraries": {
+        # Recommended: only ever install into the app's own (local) Python
+        # environment. Disabling this installs into the base/system Python.
+        "local_only": True,
+    },
 }
 
 
@@ -315,6 +345,8 @@ def get_storage_stats():
         "favorites": get_favorites_path(),
         "last_used": get_lastused_path(),
         "worker_queue": get_worker_queue_path(),
+        "store": get_store_fetchres_path(),
+        "python_libraries_cache": get_python_libraries_cache_path(),
     }
     stats = {
         "files": {
@@ -353,6 +385,8 @@ def clear_all_data():
         ("favorites", get_favorites_path()),
         ("last_used", get_lastused_path()),
         ("worker_queue", get_worker_queue_path()),
+        ("store", get_store_fetchres_path()),
+        ("python_libraries_cache", get_python_libraries_cache_path()),
     ):
         if os.path.exists(path):
             removed[label] = _file_size(path)

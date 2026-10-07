@@ -1,3 +1,5 @@
+import EmojiText from "../common/EmojiText.jsx";
+
 export function highlight(text, q) {
   if (!text || !q) return text;
   const hay = String(text);
@@ -16,4 +18,14 @@ export function highlight(text, q) {
   if (!parts.length) return hay;
   if (cursor < hay.length) parts.push(hay.slice(cursor));
   return parts;
+}
+
+export function highlightWithEmoji(text, q) {
+  const h = highlight(text, q);
+  if (Array.isArray(h)) {
+    return h.map((part, idx) =>
+      typeof part === "string" ? <EmojiText key={idx} text={part} /> : <mark key={idx}>{part.props.children}</mark>,
+    );
+  }
+  return h == null ? h : <EmojiText text={String(h)} />;
 }

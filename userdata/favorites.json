@@ -1,5 +1,8 @@
 {
     "frames_to_video": true,
     "video_audio_merger": true,
-    "image_splitter": true
+    "image_splitter": true,
+    "image_watermarker": true,
+    "ui_tester": true,
+    "bad_json_test": true
 }

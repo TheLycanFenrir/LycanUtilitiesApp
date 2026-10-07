@@ -1,3 +1,24 @@
 {
-    "texture_mipmap": {}
+    "texture_mipmap": {},
+    "frames_to_video": {
+        "w": {
+            "source_mode": "folder",
+            "source_folder": "2",
+            "output_folder": "",
+            "output_type": "mp4_h264",
+            "fps": 30,
+            "quality_mode": "CRF",
+            "crf": 18,
+            "bitrate": 8000,
+            "threads": "1",
+            "transparent": false,
+            "background": "black",
+            "background_color": [
+                0,
+                0,
+                0
+            ],
+            "gif_color_limit": "256"
+        }
+    }
 }

@@ -1,60 +1,68 @@
-import FormField from "./FormField.jsx";
+import { Fragment } from "react";
+import EmojiText from "../common/EmojiText.jsx";
 import { useFormState } from "../../contexts/FormStateContext.jsx";
-import { evalVisibility } from "../../utils/form/visibility.js";
+import { makeUiContext } from "./uiContext.js";
+import { buildLayout } from "./layout.js";
+import { collectUiFieldIds, resolveUiNode } from "./nodeRegistry.js";
+import FieldPanels from "./FieldPanels.jsx";
 
 /**
- * Data-driven form renderer. Iterates the active module's field store (itself
- * hydrated from form_schema.json) and maps each entry to the matching HTML
- * control, keyed by field_id. Fields are grouped into panels by their `part`
- * title (form splitting); a field without a part falls back to the default
- * "Inputs" panel. Hidden fields (field_visibility = false and unsatisfied
- * show_if / matching hide_if conditions) are skipped at render time but retain
- * their value in the store.
+ * Data-driven form orchestrator.
+ *
+ * Reads the active module's field store (hydrated from form_schema.json) and
+ * maps fields to panels grouped by their `part` title. Container nodes — section
+ * and popup — are positioned between those panels in the order the author listed
+ * them in the schema and are delegated to the shared resolver
+ * (SectionGenerator / PopupGenerator / FieldGenerator / ElementGenerator). A
+ * field a container owns via a form_component / form_field reference is
+ * excluded from automatic panel rendering while still carrying its value.
+ *
+ * This component intentionally stays thin: planning lives in layout.js,
+ * per-node rendering lives in the generator components and nodeRegistry.js,
+ * and cross-language actions live in uiActions.js.
  */
-export default function FormGenerator({ call, description }) {
-  const { snapshot } = useFormState();
-  const entries = Object.values(snapshot.fields).filter(
-    (entry) =>
-      entry &&
-      entry.schema &&
-      entry.visible !== false &&
-      (entry.schema.show_if == null || evalVisibility(entry.schema.show_if, snapshot)) &&
-      (entry.schema.hide_if == null || !evalVisibility(entry.schema.hide_if, snapshot)),
-  );
+export default function FormGenerator({ call, description, onFieldBlur }) {
+  const { snapshot, schema, moduleId } = useFormState();
+  const sectionOwned = collectUiFieldIds(schema);
+  const layout = buildLayout({ schema, snapshot, sectionOwned });
+  const ctx = makeUiContext({ snapshot, call, onFieldBlur, moduleId });
 
-  if (entries.length === 0) {
+  if (!layout.hasContent) {
     return (
       <section className="panel" data-panel-title="Inputs">
-        <h2 className="panel-title">Inputs</h2>
-        {description ? <p className="form-desc">{description}</p> : null}
+        <h2 className="panel-title"><EmojiText text="Inputs" /></h2>
+        {description ? <p className="form-desc"><EmojiText text={description} /></p> : null}
         <p className="field-note">No form fields defined for this utility.</p>
       </section>
     );
   }
 
-  const groups = [];
-  const byPart = new Map();
-  for (const entry of entries) {
-    const part = typeof entry.schema.part === "string" && entry.schema.part.trim() ? entry.schema.part.trim() : null;
-    const key = part || "__default__";
-    if (!byPart.has(key)) {
-      byPart.set(key, []);
-      groups.push({ key, title: part || "Inputs" });
-    }
-    byPart.get(key).push(entry);
-  }
-
   return (
     <>
-      {description ? <p className="form-desc">{description}</p> : null}
-      {groups.map(({ key, title }) => (
-        <section key={key} className="panel" data-panel-title={title}>
-          <h2 className="panel-title">{title}</h2>
-          {byPart.get(key).map((entry) => (
-            <FormField key={entry.schema.field_id} entry={entry} call={call} />
-          ))}
-        </section>
-      ))}
+      {description ? <p className="form-desc"><EmojiText text={description} /></p> : null}
+      {layout.blocks.map((block) => {
+        if (block.kind === "group") {
+          return (
+            <FieldPanels
+              key={block.title}
+              orderedTitles={[block.title]}
+              groups={layout.groups}
+              call={call}
+              onFieldBlur={onFieldBlur}
+            />
+          );
+        }
+        const node = block.node;
+        const identity =
+          node &&
+          typeof node === "object" &&
+          (node.idName || node.field_id || node.actionId);
+        return (
+          <Fragment key={identity || `container-${block.order}`}>
+            {resolveUiNode(node, ctx)}
+          </Fragment>
+        );
+      })}
     </>
   );
 }

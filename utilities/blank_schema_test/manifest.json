@@ -1,0 +1,9 @@
+{
+  "id": "blank_schema",
+  "title": "Blank Schema",
+  "python_requirements": [],
+  "additional_requirements": [],
+  "runtime": "runtime.py",
+  "schema": "form_schema.json",
+  "form_engine": "auto"
+}

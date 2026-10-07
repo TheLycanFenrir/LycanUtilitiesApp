@@ -1,9 +1,11 @@
+import EmojiText from "../../../components/common/EmojiText.jsx";
+
 export function ToolHeader({ title, description, onBack }) {
   return (
     <div className="tool-head">
       <div>
-        <h1 className="tool-head-title">{title}</h1>
-        {description && <p className="tool-head-sub">{description}</p>}
+        <h1 className="tool-head-title"><EmojiText text={title} /></h1>
+        {description && <p className="tool-head-sub"><EmojiText text={description} /></p>}
       </div>
       {onBack && (
         <button type="button" className="back-btn" onClick={onBack}>
@@ -19,7 +21,7 @@ export function FlashToast({ flash, onClose }) {
   return (
     <div className="toast-stack">
       <div className={"toast " + flash.kind} onClick={onClose}>
-        {flash.message}
+        <EmojiText text={flash.message} />
       </div>
     </div>
   );
@@ -30,10 +32,10 @@ export function ConfirmModal({ box, onAnswer }) {
     <div className="modal-overlay" onClick={() => onAnswer(false)}>
       <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <div className="modal-title">{box.title}</div>
+          <div className="modal-title"><EmojiText text={box.title} /></div>
           <button type="button" className="modal-close" onClick={() => onAnswer(false)}>x</button>
         </div>
-        <div className="modal-message">{box.message}</div>
+        <div className="modal-message"><EmojiText text={box.message} /></div>
         <div className="modal-actions">
           <button type="button" className="btn" onClick={() => onAnswer(false)}>{box.no}</button>
           <button type="button" className="btn accent" onClick={() => onAnswer(true)}>{box.yes}</button>
@@ -66,7 +68,7 @@ export function FormActions({ busy, label, onStart, onQueue, queued, editingQueu
         </button>
       )}
       <button type="button" className="btn accent" onClick={onStart} disabled={busy}>
-        {busy ? "Processing..." : label}
+        {busy ? "Processing..." : <EmojiText text={label} />}
       </button>
       <span className="grow" />
       <span className="preset-name">Use the console panel to check progress and abort.</span>

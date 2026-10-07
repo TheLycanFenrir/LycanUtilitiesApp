@@ -1,0 +1,17 @@
+{
+  "id": "card_test",
+  "title": "Card UI Demo",
+  "description": "Reference samples for the JSON-driven UI layout system: HTML containers, embedded form fields, nested cards, sections with header/actions/footer, declarative popups, conditional visibility and the UI action bridge.",
+  "python_requirements": [],
+  "additional_requirements": [],
+  "version": "1.0.0",
+  "icon": "🃏",
+  "badge": "Demo",
+  "tags": ["test", "ui", "demo", "card", "layout", "sandbox"],
+  "runtime": "runtime.py",
+  "schema": "form_schema.json",
+  "form_engine": "auto",
+  "handlers": {
+    "python": "runtime.py"
+  }
+}
