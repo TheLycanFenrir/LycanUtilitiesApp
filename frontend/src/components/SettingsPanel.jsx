@@ -175,7 +175,8 @@ export default function SettingsPanel({ call, onClose, initialSection }) {
     (async () => {
       const res = await call("get_app_settings");
       if (cancelled) return;
-      setSettings(res && typeof res === "object" ? mergeDoc(DEFAULT_SETTINGS, res) : { ...DEFAULT_SETTINGS });
+      const doc = res && res.ok !== false ? res.settings : null;
+      setSettings(doc && typeof doc === "object" ? mergeDoc(DEFAULT_SETTINGS, doc) : { ...DEFAULT_SETTINGS });
     })();
     return () => {
       cancelled = true;
@@ -254,7 +255,8 @@ export default function SettingsPanel({ call, onClose, initialSection }) {
       ? current.slice(0, current.lastIndexOf("\\"))
       : current;
     const picked = await call("open_dialog", "file", initial, "", false, ["Executable files (*.exe)", "All files (*.*)"]);
-    if (picked && picked[0]) update("ffmpeg", { path: picked[0], use_system_path: false });
+    const path = picked && picked.ok !== false && Array.isArray(picked.paths) ? picked.paths[0] : null;
+    if (path) update("ffmpeg", { path, use_system_path: false });
   };
 
   const handleClear = async (kind) => {

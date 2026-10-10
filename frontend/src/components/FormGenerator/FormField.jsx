@@ -73,7 +73,8 @@ export default function FormField({ entry, call, onFieldBlur }) {
     } catch {
       result = null;
     }
-    if (result && Array.isArray(result) && result.length) setValue(schema.field_id, result[0]);
+    const paths = result && result.ok !== false && Array.isArray(result.paths) ? result.paths : null;
+    if (paths && paths.length) setValue(schema.field_id, paths[0]);
   };
 
   let control;

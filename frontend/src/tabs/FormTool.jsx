@@ -49,9 +49,10 @@ function FormToolInner({ tool, call, console, onBack, focusJobId, queuedEdit, on
       } catch {
         saved = null;
       }
+      const doc = saved && saved.ok !== false ? saved.settings : null;
       if (cancelled) return;
-      if (saved && typeof saved === "object" && Object.keys(saved).length) {
-        const { open_explorer_after_conversion: savedOpenExplorer, ...formValues } = saved;
+      if (doc && typeof doc === "object" && Object.keys(doc).length) {
+        const { open_explorer_after_conversion: savedOpenExplorer, ...formValues } = doc;
         delete formValues.show_output_log;
         if (typeof savedOpenExplorer === "boolean") setOpenExplorer(savedOpenExplorer);
         setAll(formValues);

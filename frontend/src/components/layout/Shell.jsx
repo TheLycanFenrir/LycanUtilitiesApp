@@ -58,7 +58,7 @@ export default function Shell({ call, app, cpuName, goHome, onFocusTool, onEditJ
       const res = await call("check_for_updates");
       if (!res || res.ok !== true) {
         if (mode === "auto") return;
-        const reason = res && res.reason;
+        const reason = res && res.code;
         if (reason === "internet_disabled") {
           showToast("Internet access is disabled in Settings \u2192 General.", "warn");
         } else if (reason === "no_internet") {
@@ -82,9 +82,10 @@ export default function Shell({ call, app, cpuName, goHome, onFocusTool, onEditJ
     let attempts = 0;
     let timer = null;
     const runCheck = async () => {
-      const settings = await call("get_app_settings");
+      const settingsRes = await call("get_app_settings");
       if (cancelled) return;
-      const general = (settings && settings.general) || {};
+      const doc = settingsRes && settingsRes.ok !== false ? settingsRes.settings : null;
+      const general = (doc && doc.general) || {};
       if (!general.allow_internet || !general.check_updates_automatically) return;
       const res = await call("check_for_updates");
       if (cancelled || !res || res.ok !== true || !res.update_available) return;

@@ -3,7 +3,7 @@ import { Icon } from "../common/SvgIcon.jsx";
 import EmojiText from "../common/EmojiText.jsx";
 import { svgBody } from "../../utils/icons/heroiconPaths.js";
 import { toolIconFile } from "../../utils/paths/paths.js";
-import wolfHead from "../../../public/assets/icons/wolf-head.svg?raw";
+import wolfHead from "../../assets/icons/wolf-head.svg?raw";
 
 const STATE_LABELS = {
   empty: "Worker",
@@ -222,8 +222,9 @@ export default function WorkerDropdown({ call, onFocusTool, onEditJob }) {
       showNotice(e && e.message ? e.message : "Action failed");
     }
     refresh();
-    if (typeof res === "object" && res && res.reason) {
-      showNotice(res.ok ? res.reason : (res.reason || "Action failed"));
+    if (typeof res === "object" && res) {
+      const note = res.code || (res.ok ? "" : res.detail);
+      if (note) showNotice(note);
     } else if (res === undefined) {
       showNotice(method + " is unavailable in the bridge");
     }
@@ -267,7 +268,7 @@ export default function WorkerDropdown({ call, onFocusTool, onEditJob }) {
         setQueue((q) =>
           q ? { ...q, pending: q.pending.map((it) => (it.job_id === id ? { ...it, label: res.label } : it)) } : q,
         );
-      } else if (res && res.reason === "not_queued") {
+      } else if (res && res.code === "not_queued") {
         refresh();
       }
     } catch {
@@ -326,8 +327,9 @@ export default function WorkerDropdown({ call, onFocusTool, onEditJob }) {
       showNotice(e && e.message ? e.message : "Action failed");
     }
     refresh();
-    if (typeof res === "object" && res && res.reason) {
-      showNotice(res.ok ? res.reason : (res.reason || "Action failed"));
+    if (typeof res === "object" && res) {
+      const note = res.code || (res.ok ? "" : res.detail);
+      if (note) showNotice(note);
     } else if (res === undefined) {
       showNotice(method + " is unavailable in the bridge");
     }

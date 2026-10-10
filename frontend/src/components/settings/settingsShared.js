@@ -68,7 +68,9 @@ export async function fetchInputHistory(call) {
   );
   const next = {};
   HISTORY_SLOTS.forEach((slot, i) => {
-    next[slot.key] = Array.isArray(results[i]) ? results[i] : [];
+    const res = results[i];
+    const list = res && res.ok !== false ? res.data : null;
+    next[slot.key] = Array.isArray(list) ? list : [];
   });
   return next;
 }

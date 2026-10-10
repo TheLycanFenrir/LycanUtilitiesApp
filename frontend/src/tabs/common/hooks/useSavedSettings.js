@@ -8,7 +8,8 @@ export function useSavedSettings(toolId, call, applyModel) {
     (async () => {
       const saved = await call("get_settings", toolId);
       if (!mounted) return;
-      if (saved && typeof saved === "object" && Object.keys(saved).length) applyModel(saved);
+      const doc = saved && saved.ok !== false ? saved.settings : null;
+      if (doc && typeof doc === "object" && Object.keys(doc).length) applyModel(doc);
       setLoaded(true);
     })();
     return () => {

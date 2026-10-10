@@ -1,6 +1,6 @@
 import { CUSTOM_PATHS, HEROICON_SRCS, svgBody } from "../../utils/icons/heroiconPaths.js";
-import wolfHead from "../../../public/assets/icons/wolf-head.svg?raw";
-import pythonLogo from "../../../public/assets/icons/python.svg?raw";
+import wolfHead from "../../assets/icons/wolf-head.svg?raw";
+import pythonLogo from "../../assets/icons/python.svg?raw";
 
 export function WolfIcon() {
   return (

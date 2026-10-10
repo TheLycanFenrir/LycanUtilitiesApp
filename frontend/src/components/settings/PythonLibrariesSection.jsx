@@ -4,7 +4,7 @@ import styles from "./PythonLibraries.module.scss";
 import panelStyles from "../SettingsPanel.module.scss";
 import { Row, SettingsHead } from "./SettingsBits.jsx";
 import { highlight } from "./highlight.jsx";
-import pythonMark from "../../../public/assets/icons/python.svg";
+import pythonMark from "../../assets/icons/python.svg";
 
 const PER_PAGE = 12;
 
@@ -79,9 +79,10 @@ export default function PythonLibrariesSection({ call, python = {}, update, gene
       }
       const res = await call("get_pypi_progress");
       if (!aliveRef.current) return;
-      if (res) {
-        setProgress(res);
-        if (!res.active) stopPolling();
+      const progress = res && res.ok !== false ? res.progress : null;
+      if (progress) {
+        setProgress(progress);
+        if (!progress.active) stopPolling();
       }
     }, 250);
   }, [call, stopPolling]);
@@ -115,7 +116,7 @@ export default function PythonLibrariesSection({ call, python = {}, update, gene
         setSearch(res);
         setPage(res.page || p);
       } else {
-        setSearchError(reasonText(res.reason));
+        setSearchError(reasonText(res.detail));
       }
     },
     [call],
@@ -200,7 +201,7 @@ export default function PythonLibrariesSection({ call, python = {}, update, gene
       showToast({ message: "PyPI package index refreshed (" + res.total + " packages).", type: "good" });
       if (query) runSearch(query, page, true);
     } else {
-      showToast({ message: "PyPI index refresh failed: " + reasonText(res && res.reason), type: "warn" });
+      showToast({ message: "PyPI index refresh failed: " + reasonText(res && res.detail), type: "warn" });
     }
   };
 
@@ -236,7 +237,7 @@ export default function PythonLibrariesSection({ call, python = {}, update, gene
     const attempt = async (ack) => call("pypi_install", name, scope, isUpdate, true, batch, done, ack);
     const res = await attempt(false);
     if (!res) return null;
-    if (res.ok || res.reason !== "vulnerabilities_found") return res;
+    if (res.ok || res.code !== "vulnerabilities_found") return res;
     const proceed = await confirm({
       title: "Vulnerabilities found in “" + name + "”",
       message:
@@ -277,7 +278,7 @@ export default function PythonLibrariesSection({ call, python = {}, update, gene
         type: "good",
       });
     } else {
-      showToast({ message: "Could not " + (isUpdate ? "update " : "install ") + name + ": " + reasonText(res && res.reason), type: "warn" });
+      showToast({ message: "Could not " + (isUpdate ? "update " : "install ") + name + ": " + reasonText(res && res.detail), type: "warn" });
     }
     refreshAfterOp();
   };
@@ -306,7 +307,7 @@ export default function PythonLibrariesSection({ call, python = {}, update, gene
     if (res && res.ok) {
       showToast({ message: "Uninstalled " + name + ".", type: "good" });
     } else {
-      showToast({ message: "Could not uninstall " + name + ": " + reasonText(res && res.reason), type: "warn" });
+      showToast({ message: "Could not uninstall " + name + ": " + reasonText(res && res.detail), type: "warn" });
     }
     refreshAfterOp();
   };

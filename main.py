@@ -2,7 +2,8 @@
 
 Launches the web frontend in a native window backed by the ``app.bridge.Api``
 JS bridge.  Run with ``LYCANTOOLS_DEBUG=1`` (or ``--debug``) to enable the
-WebView2 developer tools.
+WebView2 developer tools.  ``debug_info`` verbosity is controlled by the
+``LYCANTOOLS_DEBUG_LEVEL`` environment variable (0-4) or ``--debug-level=N``.
 """
 
 import ctypes
@@ -40,11 +41,34 @@ def _notify_user(title: str, text: str) -> None:
     except Exception:
         print(f"[{title}] {text}")
 
+
+def _apply_debug_level() -> int:
+    """Apply ``--debug-level=N`` (if given) and return the active debug_info tier.
+
+    The tier is normally taken from ``LYCANTOOLS_DEBUG_LEVEL`` at import; this
+    also honors an explicit CLI override and reports the effective value so the
+    active verbosity is always visible on startup.
+    """
+    from core.debug_log import get_debug_info_level, set_debug_info_level
+    for arg in sys.argv[1:]:
+        if arg.startswith("--debug-level="):
+            try:
+                set_debug_info_level(int(arg.split("=", 1)[1]))
+            except ValueError:
+                pass
+    return get_debug_info_level()
+
 def run() -> None:
     """Start the PyWebView window hosting the SPA frontend."""
     import webview
 
     from app.bridge import Api
+
+    from core.debug_log import get_logger
+    get_logger("app.main").info(
+        "debug_info verbosity level = %s (0 off, 1 important, 2 public, 3 internal/hot, 4 all)",
+        _apply_debug_level(),
+    )
 
     frontend = os.environ.get("LYCAN_FRONTEND", "react")
     if frontend == "dev":

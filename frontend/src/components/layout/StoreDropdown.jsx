@@ -3,7 +3,7 @@ import { Icon } from "../common/SvgIcon.jsx";
 import EmojiText from "../common/EmojiText.jsx";
 import { svgBody } from "../../utils/icons/heroiconPaths.js";
 import { toolIconFile } from "../../utils/paths/paths.js";
-import wolfHead from "../../../public/assets/icons/wolf-head.svg?raw";
+import wolfHead from "../../assets/icons/wolf-head.svg?raw";
 
 function WolfIcon() {
   return (
@@ -158,7 +158,7 @@ export default function StoreDropdown({ call, open: externalOpen, onOpenChange, 
               }
             : s,
         );
-      } else if (res && res.reason === "internet_disabled") {
+      } else if (res && res.code === "internet_disabled") {
         showNotice("Internet access is disabled. Enable it in Settings > General to download utilities.");
       } else {
         showNotice("The store could not complete that download.");

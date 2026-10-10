@@ -7,11 +7,13 @@ export function usePathHistory(call, sourceKey, outputKey) {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [src, out] = await Promise.all([
+      const [srcRes, outRes] = await Promise.all([
         call("get_history", "paths", sourceKey),
         call("get_history", "paths", outputKey),
       ]);
       if (!mounted) return;
+      const src = srcRes && srcRes.ok !== false ? srcRes.data : null;
+      const out = outRes && outRes.ok !== false ? outRes.data : null;
       if (Array.isArray(src)) setSourceHistory(src);
       if (Array.isArray(out)) setOutputHistory(out);
     })();

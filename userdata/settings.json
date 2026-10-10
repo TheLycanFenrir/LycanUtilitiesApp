@@ -121,7 +121,7 @@
         "demo_level": 3,
         "demo_switch": "on",
         "demo_extra": "Only visible while the switch is On",
-        "demo_mode": "light",
+        "demo_mode": "dark",
         "demo_free_text": "sdfsdsfdfsfdsf",
         "demo_notes": "",
         "demo_tail": "",

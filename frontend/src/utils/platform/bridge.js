@@ -9,7 +9,7 @@ export async function openExternalLink(call, url) {
   if (hasBridge()) {
     const res = await call("open_external_link", url);
     if (res && res.ok) return;
-    if (res && res.reason === "invalid_url") {
+    if (res && res.code === "invalid_url") {
       showToast("Could not open the external link.", "error");
       return;
     }

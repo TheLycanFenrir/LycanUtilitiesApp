@@ -241,7 +241,7 @@ class InteropContext:
         raise InteropError(str(error_msg))
 
     def progress(self, percent: float, status_text: Optional[str] = None) -> None:
-        self._api._progress(self._job, float(percent), status_text)
+        self._api._progress(self._job, percent, status_text)
 
     def status(self, text: str, tone: str = "blue") -> None:
         self._api._status(self._job, text, tone)

@@ -29,6 +29,7 @@ Usage
     python build_react_n_run.py                         dev server + HMR + restart watcher
     python build_react_n_run.py --no-hmr                build + restart watcher
     python build_react_n_run.py --debug                 enable WebView2 devtools
+    python build_react_n_run.py --debug-level=2         debug_info verbosity tier (0-4)
     python build_react_n_run.py --no-watch              run once (dist bundle), no watcher
     python build_react_n_run.py --no-build              skip the initial build
 """
@@ -137,7 +138,7 @@ def build_frontend():
     return True
 
 
-def start_app(debug=False, frontend="react", frontend_url=None):
+def start_app(debug=False, frontend="react", frontend_url=None, debug_level=None):
     """Launch the app as a child process and return the Popen handle."""
     root = project_root()
     python = find_python()
@@ -151,6 +152,8 @@ def start_app(debug=False, frontend="react", frontend_url=None):
     cmd = [python, main_py]
     if debug:
         cmd.append("--debug")
+    if debug_level is not None:
+        cmd.append(f"--debug-level={debug_level}")
 
     log(f"Launching app with React frontend ({frontend}) ...")
     log(f"  python: {python}")
@@ -216,7 +219,7 @@ def scan_watched(root):
     return snapshot
 
 
-def run_hmr(debug=False):
+def run_hmr(debug=False, debug_level=None):
     """Run Vite dev server + app; SCSS/JSX hot-reload via Vite; restart on .py."""
     root = project_root()
     log("HMR mode enabled — SCSS/JSX changes hot-reload instantly via Vite.", "[~]")
@@ -233,7 +236,7 @@ def run_hmr(debug=False):
         sys.exit(1)
     log("Vite dev server is listening.", "[~]")
 
-    proc = start_app(debug, frontend="dev", frontend_url=VITE_URL)
+    proc = start_app(debug, frontend="dev", frontend_url=VITE_URL, debug_level=debug_level)
     snapshot = scan_watched(root)
     py_dirty = False
     py_since = 0.0
@@ -266,7 +269,7 @@ def run_hmr(debug=False):
                 py_dirty = False
                 log("Force restarting app ...", "[~]")
                 terminate_app(proc)
-                proc = start_app(debug, frontend="dev", frontend_url=VITE_URL)
+                proc = start_app(debug, frontend="dev", frontend_url=VITE_URL, debug_level=debug_level)
                 snapshot = scan_watched(root)
     except KeyboardInterrupt:
         log("Stopping ...", "[-]")
@@ -279,7 +282,7 @@ def run_hmr(debug=False):
     sys.exit(code if code is not None else 0)
 
 
-def run_watch(debug=False):
+def run_watch(debug=False, debug_level=None):
     """Run the app while watching for frontend and python changes."""
     root = project_root()
     log("Watch mode enabled (5s debounce).", "[~]")
@@ -287,7 +290,7 @@ def run_watch(debug=False):
     log("  .py changes                   -> force restart the app", "[~]")
     log("Press Ctrl+C to stop.", "[~]")
 
-    proc = start_app(debug)
+    proc = start_app(debug, debug_level=debug_level)
     snapshot = scan_watched(root)
     fe_dirty = py_dirty = False
     fe_since = py_since = 0.0
@@ -325,7 +328,7 @@ def run_watch(debug=False):
                     build_frontend()
                 log("Force restarting app ...", "[~]")
                 terminate_app(proc)
-                proc = start_app(debug)
+                proc = start_app(debug, debug_level=debug_level)
                 snapshot = scan_watched(root)
             elif fe_dirty and now - fe_since >= WATCH_DEBOUNCE_SECONDS:
                 fe_dirty = False
@@ -333,7 +336,7 @@ def run_watch(debug=False):
                 if build_frontend():
                     log("Relaunching app to load the new bundle ...", "[~]")
                     terminate_app(proc)
-                    proc = start_app(debug)
+                    proc = start_app(debug, debug_level=debug_level)
                     snapshot = scan_watched(root)
     except KeyboardInterrupt:
         log("Stopping ...", "[-]")
@@ -345,7 +348,7 @@ def run_watch(debug=False):
     sys.exit(code if code is not None else 0)
 
 
-def run_app(debug=False):
+def run_app(debug=False, debug_level=None):
     """Launch the app once (used by --no-watch)."""
     root = project_root()
     python = find_python()
@@ -357,6 +360,8 @@ def run_app(debug=False):
     cmd = [python, main_py]
     if debug:
         cmd.append("--debug")
+    if debug_level is not None:
+        cmd.append(f"--debug-level={debug_level}")
 
     log(f"Launching app with React frontend ...")
     log(f"  python: {python}")
@@ -379,6 +384,13 @@ def main():
         help="enable WebView2 developer tools",
     )
     parser.add_argument(
+        "--debug-level",
+        type=int,
+        choices=(0, 1, 2, 3, 4),
+        default=None,
+        help="debug_info verbosity tier forwarded to the app (0 off .. 4 all)",
+    )
+    parser.add_argument(
         "--no-watch",
         action="store_true",
         help="disable the dev watch loop and run the app once",
@@ -398,14 +410,14 @@ def main():
         if not args.no_build:
             if not build_frontend():
                 sys.exit(1)
-        run_app(debug=args.debug)
+        run_app(debug=args.debug, debug_level=args.debug_level)
     elif args.no_hmr:
         if not args.no_build:
             if not build_frontend():
                 sys.exit(1)
-        run_watch(debug=args.debug)
+        run_watch(debug=args.debug, debug_level=args.debug_level)
     else:
-        run_hmr(debug=args.debug)
+        run_hmr(debug=args.debug, debug_level=args.debug_level)
 
 
 if __name__ == "__main__":

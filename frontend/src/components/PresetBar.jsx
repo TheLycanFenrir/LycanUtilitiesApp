@@ -10,7 +10,8 @@ export default function PresetBar({ tool, call, collect, apply, reset }) {
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    const data = await call("get_presets", tool.id);
+    const res = await call("get_presets", tool.id);
+    const data = res && res.ok !== false ? res.presets : null;
     setPresets(data && typeof data === "object" ? data : {});
   }, [call, tool.id]);
 

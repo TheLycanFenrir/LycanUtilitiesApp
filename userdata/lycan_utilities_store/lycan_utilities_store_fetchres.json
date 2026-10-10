@@ -1,7 +1,8 @@
 {
   "ok": true,
+  "reason": "SUCCESS",
   "internet": true,
-  "fetched_at": "2026-09-22T21:28:55",
+  "fetched_at": "2026-10-10T13:14:01Z",
   "items": [
     {
       "id": "bad_json_test",
@@ -30,7 +31,7 @@
       "icon": "",
       "version": "1.0.0",
       "credits": "Lycan Utilities",
-      "size_estimate": "~2 MB",
+      "size_estimate": "Unknown",
       "installed": true
     },
     {
@@ -40,7 +41,7 @@
       "icon": "",
       "version": "1.0.0",
       "credits": "Lycan Utilities",
-      "size_estimate": "~2 MB",
+      "size_estimate": "Unknown",
       "installed": true
     },
     {
