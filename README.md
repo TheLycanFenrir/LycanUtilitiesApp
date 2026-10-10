@@ -72,6 +72,7 @@ See [INSTALLATION.md](INSTALLATION.md) for prerequisites, the full setup and eve
 - [ARCHITECTURE.md](ARCHITECTURE.md) — project structure, the JS bridge and the utility runtime pipeline
 - [DEVELOPMENT.md](DEVELOPMENT.md) — day-to-day development and debug logging
 - [WRITING_A_UTILITY.md](WRITING_A_UTILITY.md) — authoring a new utility
+- [TRANSPARENCY.md](TRANSPARENCY.md) — disclosure of AI usage in this project
 - [frontend/README.md](frontend/README.md) — the React SPA
 - [lycan_api.lua](lycan_api.lua) — the Lua interop API signature stub
 
